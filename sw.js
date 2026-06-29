@@ -1,4 +1,4 @@
-const CACHE_NAME='salon-seat-v085';
+const CACHE_NAME='salon-seat-v086';
 const APP_SHELL=['./','./index.html','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
 
 self.addEventListener('install',event=>{
