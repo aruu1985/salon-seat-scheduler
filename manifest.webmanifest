@@ -1,0 +1,19 @@
+{
+  "name": "美髮店座位調度",
+  "short_name": "店內預約表",
+  "description": "店內美髮與美甲預約排程",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eee5d6",
+  "theme_color": "#f8efdf",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
