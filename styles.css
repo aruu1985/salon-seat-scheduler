@@ -10,10 +10,21 @@ body{display:flex;flex-direction:column}
 .noteDisplayToggle{display:flex!important;align-items:center;gap:7px;margin-top:7px!important;font-size:14px!important;color:var(--ink)!important}
 .noteDisplayToggle input{width:auto}
 .appt .cardNote{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;text-overflow:ellipsis}
+.todayBoard{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+.todayTeam{padding:8px 10px;border:1px solid #cbbda8;border-radius:10px;background:#fffaf0}
+.todayTeam strong{display:block;font-size:13px;color:#655a4d}
+.teamCodes{margin-top:3px;font-size:22px;font-weight:900;letter-spacing:.05em}
+.teamNotes{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:4px;font-size:13px;font-weight:800}
+.teamNotes span{display:inline-block}.teamNotes .leaveAlert{color:#c40020}
+.settingsPanel{max-width:620px}.settingsMenu{display:grid;grid-template-columns:1fr 1fr;gap:9px}.settingsMenu button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:13px}.settingsMenu strong{font-size:17px}.settingsMenu small{margin-top:4px;color:#75695b;white-space:normal}.settingsMenu .danger small{color:#9b2737}
+.peoplePanel{max-width:920px}.peopleSettingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.settingCard{padding:11px;border:1px solid #d8ccbc;border-radius:11px;background:#fff}.settingCard h3{margin:0 0 8px}.staffAddForm{display:grid;grid-template-columns:120px 1fr;gap:7px}.staffAddForm input,.staffAddForm select,.staffRow input,.dailyStaffRow input{min-width:0;border:1px solid #bfb29f;border-radius:8px;background:#fff;padding:8px;font-size:15px}.staffAddForm button{grid-column:1/-1}.staffList,.dailyStaffList{display:grid;gap:7px;max-height:270px;overflow:auto}.staffRow{display:grid;grid-template-columns:minmax(130px,1fr) minmax(120px,1.2fr) auto auto;gap:6px;align-items:center;padding:7px;border:1px solid #e0d6c9;border-radius:8px;background:#fffaf2}.staffIdentity{min-width:0}.dailyStaffCard{grid-column:1/-1}.dailyStaffRow{display:grid;grid-template-columns:minmax(170px,.8fr) minmax(220px,1.5fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid #ddd2c4;border-radius:8px;background:#fffaf2}.dailyIdentity,.leaveToggle{display:flex;align-items:center;gap:6px}.dailyIdentity input,.leaveToggle input{width:auto}.dailyStaffCard>.primary{margin-top:9px}
 @media(max-width:560px){
   .top{padding:7px}
   .top .zoomControls{width:100%}
   .top .controlGroup{flex-wrap:wrap}
   .serviceAdd{align-items:stretch}
   .serviceAdd button{padding-inline:9px}
+  .todayBoard{grid-template-columns:1fr}.teamCodes{font-size:20px}
+  .settingsMenu,.peopleSettingsGrid{grid-template-columns:1fr}.dailyStaffCard{grid-column:auto}
+  .staffAddForm{grid-template-columns:1fr}.staffRow,.dailyStaffRow{grid-template-columns:1fr}.staffRow button{width:100%}
 }

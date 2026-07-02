@@ -1,5 +1,5 @@
-const CACHE_NAME='salon-seat-v090';
-const APP_SHELL=['./','./index.html','./styles.css','./catalog.js','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
+const CACHE_NAME='salon-seat-v0100';
+const APP_SHELL=['./','./index.html','./styles.css','./catalog.js','./staff.js','./settings.js','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
