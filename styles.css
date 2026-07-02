@@ -1,0 +1,19 @@
+/* V0.9+ additions live here so new layout and feature styles no longer grow index.html. */
+html,body{height:100%;height:100dvh;overflow:hidden}
+body{display:flex;flex-direction:column}
+.top{position:relative;top:auto;flex:0 0 auto}
+.top .zoomControls{position:relative;left:auto;top:auto;z-index:1;width:max-content;max-width:100%;margin:7px 0 0;box-shadow:none}
+.stage{height:auto!important;min-height:0;flex:1 1 auto}
+.serviceAdd{display:flex;gap:7px;margin-top:7px}
+.serviceAdd input{min-width:0;flex:1}
+.serviceAdd button{font-size:14px}
+.noteDisplayToggle{display:flex!important;align-items:center;gap:7px;margin-top:7px!important;font-size:14px!important;color:var(--ink)!important}
+.noteDisplayToggle input{width:auto}
+.appt .cardNote{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;text-overflow:ellipsis}
+@media(max-width:560px){
+  .top{padding:7px}
+  .top .zoomControls{width:100%}
+  .top .controlGroup{flex-wrap:wrap}
+  .serviceAdd{align-items:stretch}
+  .serviceAdd button{padding-inline:9px}
+}
