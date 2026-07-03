@@ -17,7 +17,7 @@
   function ensureDate(date){draft.exceptions= draft.exceptions||{};draft.exceptions[date]=draft.exceptions[date]||{};return draft.exceptions[date]}
   function setEntry(date,id,value){const day=ensureDate(date);if(value.status==='normal'&&!value.note){delete day[id]}else day[id]=value;if(!Object.keys(day).length)delete draft.exceptions[date]}
   function statusShort(entry){if(entry.status==='late')return `${entry.time||''}到班`;if(entry.status==='early')return `${entry.time||''}下班`;if(entry.status==='afternoon')return `下半天${entry.time?' '+entry.time:''}`;return STATUS[entry.status]||''}
-  function renderRoster(){for(const [role,target] of [['designer','scheduleDesigners'],['technician','scheduleTechnicians']]){$(target).innerHTML=activeStaff().filter(p=>p.role===role).map(p=>`<div class="rosterPerson"><b>${esc(p.code)}</b><span>${esc(p.name||'')}</span>${p.fixedOffDay!==null&&p.fixedOffDay!==undefined?`<small>固定週${'日一二三四五六'[p.fixedOffDay]}休</small>`:''}</div>`).join('')||'<small>尚無啟用人員</small>'}}
+  function renderRoster(){for(const [role,target] of [['designer','scheduleDesigners'],['technician','scheduleTechnicians']]){$(target).innerHTML=activeStaff().filter(p=>p.role===role).map(p=>`<div class="rosterPerson"><b ${p.color?`style="background:${esc(p.color)}"`:''}>${esc(p.code)}</b><span>${esc(p.name||'')}</span>${p.fixedOffDay!==null&&p.fixedOffDay!==undefined?`<small>固定週${'日一二三四五六'[p.fixedOffDay]}休</small>`:''}</div>`).join('')||'<small>尚無啟用人員</small>'}}
   function renderCalendar(){
     if(!month)return;const [year,mon]=month.split('-').map(Number),first=new Date(year,mon-1,1).getDay(),days=monthDays(month),cells=[];
     for(let i=0;i<first;i++)cells.push('<div class="monthDay outside"></div>');

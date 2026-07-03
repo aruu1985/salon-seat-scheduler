@@ -2,12 +2,17 @@
   const $=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const STATUS={normal:'正常上班',off:'休假',late:'晚到／晚上班',early:'提早下班',afternoon:'下半天',leave:'請假'};
+  const COLORS=[['#f6a24c','橘色'],['#fff176','黃色'],['#ff75ad','桃紅色'],['#8ee072','綠色'],['#7dc8ff','藍色'],['#c6a4ff','紫色'],['#81d8d0','蒂芬妮藍']];
+  const LEGACY_COLORS={'2':'#f6a24c','3':'#fff176','5':'#ff75ad','6':'#8ee072','7':'#7dc8ff','13':'#81d8d0'};
   let db=null,currentDate='',currentRole='designer',staff=[],staffing={entries:{}},monthly={exceptions:{}},notify=()=>{},staffUnsubscribe=null,dayUnsubscribe=null,monthUnsubscribe=null,dailySaveTimer=null;
 
   function staffRef(){return db.collection('salons').doc('default').collection('staff')}
   function dayRef(){return db.collection('salons').doc('default').collection('dates').doc(currentDate)}
   function roleLabel(role){return role==='technician'?'技術師':'設計師'}
   function sortStaff(items){return [...items].sort((a,b)=>a.role.localeCompare(b.role)||String(a.code).localeCompare(String(b.code),'zh-Hant',{numeric:true}))}
+  function staffColor(item){return item?.color||LEGACY_COLORS[String(item?.code)]||'#c6a4ff'}
+  function colorOptions(selected){return COLORS.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
+  function syncAppointmentDesigners(){const select=$('designer'),designers=sortStaff(staff.filter(item=>item.active!==false&&item.role==='designer'));if(!select||!designers.length)return;const selected=select.value;select.innerHTML='<option value="x">不指定／紫</option>'+designers.map(item=>`<option value="${esc(item.code)}">${esc(item.code)} ${esc(item.name||'')}</option>`).join('');if([...select.options].some(option=>option.value===selected))select.value=selected}
   function normalizeStaffing(value={}){
     if(value.entries)return {entries:{...value.entries}};
     const entries={};
@@ -20,11 +25,13 @@
 
   function renderMaster(){
     const active=sortStaff(staff.filter(item=>item.active!==false)),inactive=sortStaff(staff.filter(item=>item.active===false));
-    $('activeStaffList').innerHTML=active.length?active.map(item=>`<div class="staffRow"><span class="staffIdentity"><b>${esc(roleLabel(item.role))} ${esc(item.code)}號</b>${item.name?` ${esc(item.name)}`:''}</span><input data-staff-note="${esc(item.id)}" value="${esc(item.note||'')}" placeholder="人員備註"><select data-fixed-off="${esc(item.id)}"><option value="">無固定休</option>${['日','一','二','三','四','五','六'].map((day,index)=>`<option value="${index}" ${String(item.fixedOffDay)===String(index)?'selected':''}>星期${day}休</option>`).join('')}</select><button data-save-staff="${esc(item.id)}">儲存</button><button class="danger" data-disable-staff="${esc(item.id)}">停用</button></div>`).join(''):'<div class="hint">尚未新增人員。</div>';
+    $('activeStaffList').innerHTML=active.length?active.map(item=>`<div class="staffRow staffMasterRow"><b>${esc(roleLabel(item.role))}</b><input data-staff-code="${esc(item.id)}" value="${esc(item.code)}" aria-label="編號"><input data-staff-name="${esc(item.id)}" value="${esc(item.name||'')}" placeholder="姓名" aria-label="姓名"><input data-staff-note="${esc(item.id)}" value="${esc(item.note||'')}" placeholder="備註" aria-label="備註"><select data-fixed-off="${esc(item.id)}" aria-label="固定休"><option value="">無固定休</option>${['日','一','二','三','四','五','六'].map((day,index)=>`<option value="${index}" ${String(item.fixedOffDay)===String(index)?'selected':''}>星期${day}休</option>`).join('')}</select>${item.role==='designer'?`<select data-staff-color="${esc(item.id)}" aria-label="顏色" style="border-left:12px solid ${staffColor(item)}">${colorOptions(staffColor(item))}</select>`:'<span class="noStaffColor">—</span>'}<span class="staffRowActions"><button data-save-staff="${esc(item.id)}">儲存</button><button class="danger" data-disable-staff="${esc(item.id)}">停用</button></span></div>`).join(''):'<div class="hint">尚未新增人員。</div>';
     $('inactiveStaffList').innerHTML=inactive.length?inactive.map(item=>`<div class="staffRow"><span class="staffIdentity"><b>${esc(roleLabel(item.role))} ${esc(item.code)}號</b>${item.name?` ${esc(item.name)}`:''}</span><span class="hint">${esc(item.note||'')}</span><button data-restore-staff="${esc(item.id)}">恢復啟用</button></div>`).join(''):'<div class="hint">目前沒有停用人員。</div>';
     document.querySelectorAll('[data-disable-staff]').forEach(button=>button.onclick=()=>setActive(button.dataset.disableStaff,false));
     document.querySelectorAll('[data-restore-staff]').forEach(button=>button.onclick=()=>setActive(button.dataset.restoreStaff,true));
     document.querySelectorAll('[data-save-staff]').forEach(button=>button.onclick=()=>saveStaffDetails(button.dataset.saveStaff));
+    document.querySelectorAll('[data-staff-color]').forEach(select=>select.onchange=()=>select.style.borderLeftColor=select.value);
+    syncAppointmentDesigners();
   }
   function statusOptions(selected){return Object.entries(STATUS).map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
   function dailyStatusOptions(item){const daily=dailyEntryFor(item.id),effective=entryFor(item.id),inheritLabel='依月底排班（'+STATUS[effective.status]+'）';return `<option value="inherit" ${daily?'':'selected'}>${inheritLabel}</option>`+statusOptions(daily?.status||'')}
@@ -57,13 +64,13 @@
   }
   function renderAll(){renderMaster();renderDaily();renderDashboard()}
   async function addStaff(){
-    const role=$('newStaffRole').value,code=$('newStaffCode').value.trim(),name=$('newStaffName').value.trim(),note=$('newStaffNote').value.trim(),fixedOffDay=$('newStaffFixedOff').value;
+    const role=$('newStaffRole').value,code=$('newStaffCode').value.trim(),name=$('newStaffName').value.trim(),note=$('newStaffNote').value.trim(),fixedOffDay=$('newStaffFixedOff').value,color=role==='designer'?$('newStaffColor').value:null;
     if(!code){notify('請輸入人員編號。',true);return}
     if(staff.some(item=>item.role===role&&String(item.code).toLocaleLowerCase()===code.toLocaleLowerCase())){notify('這個人員編號已存在；若已停用，請從停用人員恢復。',true);return}
-    try{$('addStaffBtn').disabled=true;await staffRef().add({role,code,name,note,fixedOffDay:fixedOffDay===''?null:Number(fixedOffDay),active:true,createdAtMs:Date.now()});$('newStaffCode').value='';$('newStaffName').value='';$('newStaffNote').value='';$('newStaffFixedOff').value='';notify('已新增'+roleLabel(role)+' '+code+'號。')}catch(error){notify('新增人員失敗：'+error.message,true)}finally{$('addStaffBtn').disabled=false}
+    try{$('addStaffBtn').disabled=true;await staffRef().add({role,code,name,note,color,fixedOffDay:fixedOffDay===''?null:Number(fixedOffDay),active:true,createdAtMs:Date.now()});$('newStaffCode').value='';$('newStaffName').value='';$('newStaffNote').value='';$('newStaffFixedOff').value='';notify('已新增'+roleLabel(role)+' '+code+'號。')}catch(error){notify('新增人員失敗：'+error.message,true)}finally{$('addStaffBtn').disabled=false}
   }
   async function setActive(id,active){try{await staffRef().doc(id).update({active,updatedAtMs:Date.now()});notify(active?'已恢復啟用。':'人員已停用，歷史預約不受影響。')}catch(error){notify('更新人員失敗：'+error.message,true)}}
-  async function saveStaffDetails(id){const note=document.querySelector(`[data-staff-note="${id}"]`),fixed=document.querySelector(`[data-fixed-off="${id}"]`);try{await staffRef().doc(id).update({note:note.value.trim(),fixedOffDay:fixed.value===''?null:Number(fixed.value),updatedAtMs:Date.now()});notify('人員資料與固定休已儲存。')}catch(error){notify('人員資料儲存失敗：'+error.message,true)}}
+  async function saveStaffDetails(id){const person=staff.find(item=>item.id===id),code=document.querySelector(`[data-staff-code="${id}"]`).value.trim(),name=document.querySelector(`[data-staff-name="${id}"]`).value.trim(),note=document.querySelector(`[data-staff-note="${id}"]`).value.trim(),fixed=document.querySelector(`[data-fixed-off="${id}"]`),color=document.querySelector(`[data-staff-color="${id}"]`)?.value||null;if(!code){notify('人員編號不可空白。',true);return}if(staff.some(item=>item.id!==id&&item.role===person.role&&String(item.code).toLocaleLowerCase()===code.toLocaleLowerCase())){notify('同職類已有相同編號，請使用其他編號。',true);return}const previousCodes=[...(person.previousCodes||[])];if(String(person.code)!==code&&!previousCodes.map(String).includes(String(person.code)))previousCodes.push(String(person.code));try{await staffRef().doc(id).update({code,name,note,color,previousCodes,fixedOffDay:fixed.value===''?null:Number(fixed.value),updatedAtMs:Date.now()});notify(roleLabel(person.role)+' '+code+'號主檔已儲存。')}catch(error){notify('人員資料儲存失敗：'+error.message,true)}}
   function collectRoleEntries(){
     const next={...staffing.entries};for(const person of staff.filter(item=>item.role===currentRole))delete next[person.id];
     document.querySelectorAll('.dailyStaffRow').forEach(row=>{const id=row.dataset.dailyId,status=row.querySelector('.dailyStatus').value,time=row.querySelector('.dailyTime').value,note=row.querySelector('.dailyNote').value.trim();if(status!=='inherit')next[id]={working:!['off','leave'].includes(status),status,time,note}});
@@ -77,6 +84,8 @@
   function open(){$('peopleModal').classList.add('open');renderMaster()}
   function openDaily(role){currentRole=role;$('dailyStaffModal').classList.add('open');renderDaily()}
   function bindBoard(id,role){const board=$(id);board.onclick=()=>openDaily(role);board.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openDaily(role)}}}
-  function init(options={}){notify=options.notify||notify;$('addStaffBtn').onclick=addStaff;$('peopleClose').onclick=()=>$('peopleModal').classList.remove('open');$('peopleModal').onclick=event=>{if(event.target===$('peopleModal'))$('peopleModal').classList.remove('open')};$('saveDailyStaffBtn').onclick=saveDaily;$('clearDailyStaffBtn').onclick=clearDailyRole;$('dailyStaffClose').onclick=$('dailyStaffCancel').onclick=()=>$('dailyStaffModal').classList.remove('open');$('dailyStaffModal').onclick=event=>{if(event.target===$('dailyStaffModal'))$('dailyStaffModal').classList.remove('open')};bindBoard('designerBoard','designer');bindBoard('technicianBoard','technician')}
-  window.SalonStaff={init,connect,setDate,open,openDaily};
+  function syncNewRoleFields(){const designer=$('newStaffRole').value==='designer';$('newStaffColor').hidden=!designer;$('newStaffFixedOff').hidden=!designer}
+  function colorForCode(code){if(String(code)==='x')return '#c6a4ff';const person=staff.find(item=>item.role==='designer'&&(String(item.code)===String(code)||(item.previousCodes||[]).map(String).includes(String(code))));return staffColor(person||{code})}
+  function init(options={}){notify=options.notify||notify;$('addStaffBtn').onclick=addStaff;$('newStaffRole').onchange=syncNewRoleFields;syncNewRoleFields();$('peopleClose').onclick=()=>$('peopleModal').classList.remove('open');$('peopleModal').onclick=event=>{if(event.target===$('peopleModal'))$('peopleModal').classList.remove('open')};$('saveDailyStaffBtn').onclick=saveDaily;$('clearDailyStaffBtn').onclick=clearDailyRole;$('dailyStaffClose').onclick=$('dailyStaffCancel').onclick=()=>$('dailyStaffModal').classList.remove('open');$('dailyStaffModal').onclick=event=>{if(event.target===$('dailyStaffModal'))$('dailyStaffModal').classList.remove('open')};bindBoard('designerBoard','designer');bindBoard('technicianBoard','technician')}
+  window.SalonStaff={init,connect,setDate,open,openDaily,colorForCode};
 })();
