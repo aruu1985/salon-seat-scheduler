@@ -30,5 +30,11 @@ service cloud.firestore {
     match /salons/default/staff/{staffId} {
       allow read, write: if request.auth != null;
     }
+    match /salons/default/schedules/{monthId} {
+      allow read, write: if request.auth != null;
+    }
+    match /salons/default/annualCalendars/{yearId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
