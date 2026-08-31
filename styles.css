@@ -1,9 +1,19 @@
 /* V0.9+ additions live here so new layout and feature styles no longer grow index.html. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{height:100%;height:100dvh;overflow:hidden}
 body{display:flex;flex-direction:column}
 .top{position:relative;top:auto;flex:0 0 auto}
 .top .zoomControls{position:relative;left:auto;top:auto;z-index:1;width:max-content;max-width:100%;margin:7px 0 0;box-shadow:none}
 .stage{height:auto!important;min-height:0;flex:1 1 auto}
+.paper{--schedule-scale:1;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.paper .head{height:calc(34px * var(--schedule-scale));font-size:calc(14px * var(--schedule-scale));border-right-width:calc(1px * var(--schedule-scale));border-bottom-width:calc(2px * var(--schedule-scale))}
+.paper .time{height:calc(var(--row) * var(--schedule-scale));font-size:calc(12px * var(--schedule-scale));padding-top:calc(4px * var(--schedule-scale));border-right-width:calc(1px * var(--schedule-scale));border-bottom-width:calc(1px * var(--schedule-scale))}
+.paper .cell{height:calc(var(--row) * var(--schedule-scale));border-right-width:calc(1px * var(--schedule-scale));border-bottom-width:calc(1px * var(--schedule-scale))}
+.paper .appt{left:calc(4px * var(--schedule-scale));right:calc(4px * var(--schedule-scale));top:calc(3px * var(--schedule-scale));border-width:calc(1.5px * var(--schedule-scale));border-radius:calc(7px * var(--schedule-scale));padding:calc(4px * var(--schedule-scale)) calc(5px * var(--schedule-scale));font-size:calc(12px * var(--schedule-scale));line-height:1.18;box-shadow:0 calc(2px * var(--schedule-scale)) calc(5px * var(--schedule-scale)) rgba(0,0,0,.14);overflow:hidden;overflow-wrap:anywhere;contain:paint}
+.paper .appt .meta{font-size:calc(11px * var(--schedule-scale))}
+.paper .apptSide{padding:calc(4px * var(--schedule-scale))}
+.paper .apptSide+.apptSide{border-left-width:calc(1.5px * var(--schedule-scale))}
+.paper .secondaryBar{right:calc(3px * var(--schedule-scale));border-width:calc(1.5px * var(--schedule-scale));border-radius:calc(5px * var(--schedule-scale));padding:calc(4px * var(--schedule-scale));font-size:calc(11px * var(--schedule-scale));line-height:1.2;box-shadow:0 calc(2px * var(--schedule-scale)) calc(4px * var(--schedule-scale)) rgba(0,0,0,.16);overflow:hidden;overflow-wrap:anywhere}
 .serviceAdd{display:flex;gap:7px;margin-top:7px}
 .serviceAdd input{min-width:0;flex:1}
 .serviceAdd button{font-size:14px}
