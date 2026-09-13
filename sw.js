@@ -1,5 +1,5 @@
 const CACHE_NAME='salon-seat-v0118-calendar-integration';
-const APP_SHELL=['./','./index.html','./styles.css','./catalog.js','./staff.js','./gov-calendar.js','./schedule.js','./settings.js','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
+const APP_SHELL=['./','./index.html','./styles.css','./catalog.js','./staff.js','./gov-calendar.js','./gov-holidays/2026.json','./schedule.js','./settings.js','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));

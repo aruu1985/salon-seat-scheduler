@@ -35,10 +35,17 @@
     }
     return new URL(link.getAttribute('href'),DATASET_URL).href;
   }
+  async function readBundledCache(year){
+    const response=await fetch(`gov-holidays/${year}.json`,{cache:'no-store'});
+    if(!response.ok)throw new Error('沒有內建政府假日快取 HTTP '+response.status);
+    const data=await response.json();
+    if(!data.days||!Object.keys(data.days).length)throw new Error('內建政府假日快取沒有資料');
+    cache[year]=data;try{localStorage.setItem(cacheKey(year),JSON.stringify(data))}catch(e){}return data;
+  }
   async function ensureYear(year){
     year=Number(year);const cached=readCache(year);
     try{const url=await findOfficialCsv(year),csv=await fetch(url,{cache:'no-store'}).then(res=>{if(!res.ok)throw new Error('政府 CSV 讀取失敗 HTTP '+res.status);return res.text()}),days=normalizeRows(csv,year);if(!Object.keys(days).length)throw new Error('政府 CSV 沒有可用日期資料');return writeCache(year,days,url)}
-    catch(error){if(cached){notify('政府假日資料暫時無法更新，已使用上次快取。');return cached}notify('政府假日資料暫時無法更新，本店排班仍可正常使用。',true);return {year,days:{},error:error.message,source:DATASET_URL}}
+    catch(error){try{const bundled=await readBundledCache(year);notify('政府假日資料暫時無法即時更新，已使用官方快取。');return bundled}catch(e){}if(cached){notify('政府假日資料暫時無法更新，已使用上次快取。');return cached}notify('政府假日資料暫時無法更新，本店排班仍可正常使用。',true);return {year,days:{},error:error.message,source:DATASET_URL}}
   }
   async function holidays(year){return (await ensureYear(year)).days||{}}
   function cached(year){return readCache(year)?.days||{}}
