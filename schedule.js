@@ -29,6 +29,8 @@
   const displayFilterLabel=()=>displayFilter==='designer'?'設計師':displayFilter==='technician'?'技術師':'';
   const staffMatchesDisplay=person=>displayFilter==='all'||person.role===displayFilter;
   const isLeaveStatus=status=>status==='off'||status==='leave';
+  const isRestDisplayStatus=status=>status==='off'||status==='leave'||status==='afternoon';
+  const leaveSubText=entry=>entry?.status==='afternoon'?`下半天${entry.time?` ${entry.time}`:''}`:'';
   function staffColor(person){return person.role==='technician'?'#256f86':(person.color||'#444')}
   function updateDisplayControls(){
     document.querySelectorAll('[data-schedule-filter]').forEach(button=>button.classList.toggle('active',button.dataset.scheduleFilter===displayFilter));
@@ -48,8 +50,8 @@
       if(!staffMatchesDisplay(person))return false;
       if(personMode?.active&&person.id===personMode.personId)return personMode.selected.has(date);
       const entry=entries[person.id];
-      return entry&&isLeaveStatus(entry.status);
-    });
+      return entry&&isRestDisplayStatus(entry.status);
+    }).map(person=>({person,entry:entries[person.id]||{status:'off',time:'',note:''}}));
   }
   function govDisplayName(name){
     const text=String(name||'政府假日');
@@ -74,9 +76,9 @@
     for(let i=0;i<first;i++)cells.push('<div class="monthDay outside"></div>');
     for(let day=1;day<=days;day++){
       const date=dateAt(day),entries=draft.exceptions?.[date]||{},personPick=personMode?.selected?.has(date),leavePeople=leavePeopleForDate(date,entries),nameSize=Math.min(5,Math.max(1,leavePeople.length));
-      const names=leavePeople.map(person=>`<span class="monthLeaveName ${person.role==='technician'?'technician':'designer'}" style="--staff-color:${esc(staffColor(person))}">${esc(personLabel(person))}</span>`).join('');
+      const names=leavePeople.map(({person,entry})=>`<span class="monthLeaveEntry"><span class="monthLeaveName ${person.role==='technician'?'technician':'designer'}" style="--staff-color:${esc(staffColor(person))}">${esc(personLabel(person))}</span>${leaveSubText(entry)?`<small>${esc(leaveSubText(entry))}</small>`:''}</span>`).join('');
       const namesBlock=names?`<div class="monthLeaveNames leaveCount${nameSize}">${names}</div>`:'';
-      const specialLines=!screenshotMode&&!personMode?activeStaff().filter(p=>staffMatchesDisplay(p)&&entries[p.id]&&entries[p.id].status!=='normal'&&!isLeaveStatus(entries[p.id].status)).map(p=>{const entry=entries[p.id];return `<span class="scheduleMark status-${esc(entry.status)}">${esc(roleLabel(p.role).slice(0,1))} ${esc(personLabel(p))} ${esc(statusShort(entry))}</span>`}).join(''):'';
+      const specialLines=!screenshotMode&&!personMode?activeStaff().filter(p=>staffMatchesDisplay(p)&&entries[p.id]&&entries[p.id].status!=='normal'&&!isRestDisplayStatus(entries[p.id].status)).map(p=>{const entry=entries[p.id];return `<span class="scheduleMark status-${esc(entry.status)}">${esc(roleLabel(p.role).slice(0,1))} ${esc(personLabel(p))} ${esc(statusShort(entry))}</span>`}).join(''):'';
       const personLine=personMode&&personPick?'<span class="scheduleMark personLeaveMarker">✓ 本人休假</span>':'';
       cells.push(`<button class="monthDay ${date===selectedDate?'selected':''} ${personPick?'personLeavePicked':''} ${leavePeople.length?'hasLeaveNames':''}" data-date="${date}"><b>${day}</b>${dayBadges(date)}${personLine}${namesBlock}${specialLines}</button>`)
     }
