@@ -45,7 +45,7 @@
   async function ensureYear(year){
     year=Number(year);const cached=readCache(year);
     try{const url=await findOfficialCsv(year),csv=await fetch(url,{cache:'no-store'}).then(res=>{if(!res.ok)throw new Error('政府 CSV 讀取失敗 HTTP '+res.status);return res.text()}),days=normalizeRows(csv,year);if(!Object.keys(days).length)throw new Error('政府 CSV 沒有可用日期資料');return writeCache(year,days,url)}
-    catch(error){try{const bundled=await readBundledCache(year);notify('政府假日資料暫時無法即時更新，已使用官方快取。');return bundled}catch(e){}if(cached){notify('政府假日資料暫時無法更新，已使用上次快取。');return cached}notify('政府假日資料暫時無法更新，本店排班仍可正常使用。',true);return {year,days:{},error:error.message,source:DATASET_URL}}
+    catch(error){console.warn('政府假日即時來源讀取失敗，改用快取資料。',error);try{return await readBundledCache(year)}catch(e){console.warn('內建政府假日快取讀取失敗。',e)}if(cached){notify('政府假日官方快取暫時無法讀取，已使用上次快取。');return cached}notify(`${year} 年政府假日資料暫時無法更新，且沒有可用快取；本店排班仍可正常使用。`,true);return {year,days:{},error:error.message,source:DATASET_URL}}
   }
   async function holidays(year){return (await ensureYear(year)).days||{}}
   function cached(year){return readCache(year)?.days||{}}
