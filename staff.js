@@ -87,5 +87,5 @@
   function syncNewRoleFields(){const designer=$('newStaffRole').value==='designer';$('newStaffColor').hidden=!designer;$('newStaffFixedOff').hidden=!designer}
   function colorForCode(code){if(String(code)==='x')return '#c6a4ff';const person=staff.find(item=>item.role==='designer'&&(String(item.code)===String(code)||(item.previousCodes||[]).map(String).includes(String(code))));return staffColor(person||{code})}
   function init(options={}){notify=options.notify||notify;$('addStaffBtn').onclick=addStaff;$('newStaffRole').onchange=syncNewRoleFields;syncNewRoleFields();$('peopleClose').onclick=()=>$('peopleModal').classList.remove('open');$('peopleModal').onclick=event=>{if(event.target===$('peopleModal'))$('peopleModal').classList.remove('open')};$('saveDailyStaffBtn').onclick=saveDaily;$('clearDailyStaffBtn').onclick=clearDailyRole;$('dailyStaffClose').onclick=$('dailyStaffCancel').onclick=()=>$('dailyStaffModal').classList.remove('open');$('dailyStaffModal').onclick=event=>{if(event.target===$('dailyStaffModal'))$('dailyStaffModal').classList.remove('open')};bindBoard('designerBoard','designer');bindBoard('technicianBoard','technician')}
-  window.SalonStaff={init,connect,setDate,open,openDaily,colorForCode};
+  window.SalonStaff={init,connect,setDate,open,openDaily,colorForCode,colorForPerson:staffColor};
 })();

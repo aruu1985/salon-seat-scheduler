@@ -3,7 +3,7 @@
   const STATUS={normal:'正常上班',off:'休假',late:'晚到／晚上班',early:'提早下班',afternoon:'下半天',leave:'請假'};
   const STORE={normal:'正常營業',specialHours:'特殊營業時間',closed:'本店公休',halfDay:'半日營業',lateOpen:'延後營業',earlyClose:'提早打烊',extended:'延長營業',noBooking:'不可預約',training:'教育課程',meeting:'半日會議',specialOpen:'特殊營業日',spring:'春節店休'};
   const LEGACY={closed:'closed',spring:'spring',training:'training',meeting:'meeting',earlyClose:'earlyClose',noBooking:'noBooking',specialOpen:'specialOpen'};
-  let db=null,notify=()=>{},staff=[],month='',selectedDate='',currentDate='',draft={exceptions:{}},store={overrides:{}},legacyEvents=[],govDays={},monthUnsub=null,staffUnsub=null,storeUnsub=null,legacyUnsub=null,currentStoreUnsub=null,currentLegacyUnsub=null,annualStoreUnsub=null,annualLegacyUnsub=null,currentStoreData={overrides:{}},currentGovDays={},monthSaveTimer=null,storeSaveTimer=null,loadingMonth=false,monthRevision=0,monthDirty=false,annualMonth='',annualSelected=new Set(),personMode=null,displayFilter='all',screenshotMode=false;
+  let db=null,notify=()=>{},staff=[],month='',selectedDate='',currentDate='',draft={exceptions:{}},store={overrides:{}},legacyEvents=[],govDays={},monthUnsub=null,staffUnsub=null,storeUnsub=null,legacyUnsub=null,currentStoreUnsub=null,currentLegacyUnsub=null,annualStoreUnsub=null,annualLegacyUnsub=null,currentStoreData={overrides:{}},currentGovDays={},monthSaveTimer=null,storeSaveTimer=null,loadingMonth=false,monthRevision=0,monthDirty=false,annualMonth='',annualSelected=new Set(),personMode=null,displayFilter='all',screenshotMode=false,screenshotRestoreState=null,screenshotCancelled=false;
   const clone=value=>JSON.parse(JSON.stringify(value||{}));
   const esc=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const staffRef=()=>db.collection('salons').doc('default').collection('staff');
@@ -31,11 +31,12 @@
   const isLeaveStatus=status=>status==='off'||status==='leave';
   const isRestDisplayStatus=status=>status==='off'||status==='leave'||status==='afternoon';
   const leaveSubText=entry=>entry?.status==='afternoon'?`下半天${entry.time?` ${entry.time}`:''}`:'';
-  function staffColor(person){return person.role==='technician'?'#256f86':(person.color||'#444')}
+  function staffColor(person){return person.role==='technician'?'#256f86':window.SalonStaff.colorForPerson(person)}
   function updateDisplayControls(){
     document.querySelectorAll('[data-schedule-filter]').forEach(button=>button.classList.toggle('active',button.dataset.scheduleFilter===displayFilter));
     const modeButton=$('scheduleScreenshotMode');if(modeButton){modeButton.classList.toggle('active',screenshotMode);modeButton.textContent=screenshotMode?'退出截圖模式':'📷 截圖模式'}
     const modal=$('scheduleModal');if(modal)modal.classList.toggle('scheduleScreenshot',screenshotMode);
+    const back=ensureScreenshotBackButton();if(back)back.hidden=!screenshotMode;
     const title=$('scheduleAnnouncementTitle');if(title)title.textContent=month?`${Number(month.slice(0,4))}年${Number(month.slice(5,7))}月${displayFilterLabel()}休假表`:'每月休假表';
   }
   function setDisplayFilter(value){displayFilter=value||'all';renderAll()}
@@ -44,6 +45,58 @@
     if(!screenshotMode)personMode=null;
     screenshotMode=!screenshotMode;
     renderAll();
+  }
+  function ensureScreenshotBackButton(){
+    let button=$('scheduleScreenshotBack');
+    if(button)return button;
+    button=document.createElement('button');button.id='scheduleScreenshotBack';button.className='scheduleScreenshotBack';button.type='button';button.textContent='← 返回';button.hidden=true;button.onclick=()=>{screenshotCancelled=true;restoreScreenshotState()};
+    document.body.appendChild(button);
+    return button;
+  }
+  function exitScreenshotMode(){
+    screenshotCancelled=true;
+    restoreScreenshotState();
+  }
+  async function restoreScreenshotState(state=screenshotRestoreState){
+    if(state?.restored)return;
+    if(!state){screenshotMode=false;renderAll();return}
+    state.restored=true;
+    screenshotMode=state.screenshotMode;personMode=state.personMode;displayFilter=state.displayFilter;month=state.month;selectedDate=state.selectedDate;
+    const button=$('scheduleScreenshotMode');if(button)button.disabled=false;
+    screenshotRestoreState=null;renderAll();await nextPaint();const main=$('scheduleModal')?.querySelector('main');if(main)main.scrollTop=state.layoutScroll;window.scrollTo(state.scrollX,state.scrollY);
+  }
+  const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  function cssText(){
+    return [...document.styleSheets].map(sheet=>{try{return [...sheet.cssRules].map(rule=>rule.cssText).join('\n')}catch(error){return ''}}).join('\n');
+  }
+  function downloadBlob(blob,filename){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200)}
+  function canvasBlob(canvas){return new Promise(resolve=>canvas.toBlob(resolve,'image/png',1))}
+  async function scheduleImageBlob(){
+    const modal=$('scheduleModal'),rect=modal.getBoundingClientRect(),width=Math.ceil(rect.width),height=Math.ceil(rect.height),html=`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${cssText()}</style>${modal.outerHTML}</div>`,svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${html}</foreignObject></svg>`,url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),image=new Image();
+    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url});
+    const canvas=document.createElement('canvas');canvas.width=width*2;canvas.height=height*2;const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.scale(2,2);context.drawImage(image,0,0);const blob=await canvasBlob(canvas);if(!blob)throw new Error('圖片產生失敗');return blob;
+  }
+  async function captureScheduleScreenshot(){
+    if(personModeDirty()&&!confirmPersonDiscard())return;
+    const state={screenshotMode,personMode,displayFilter,month,selectedDate,scrollX:window.scrollX,scrollY:window.scrollY,layoutScroll:$('scheduleModal')?.querySelector('main')?.scrollTop||0};
+    const filename=`${$('scheduleAnnouncementTitle')?.textContent||'休假表'}.png`,button=$('scheduleScreenshotMode');
+    screenshotRestoreState=state;screenshotCancelled=false;
+    try{
+      personMode=null;screenshotMode=true;if(button)button.disabled=true;renderAll();await nextPaint();
+      await wait(900);
+      if(screenshotCancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
+      const blob=await scheduleImageBlob(),file=new File([blob],filename,{type:'image/png'});
+      if(screenshotCancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
+      if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:filename});
+      else downloadBlob(blob,filename);
+      notify('休假表圖片已產生。');
+    }catch(error){
+      if(error?.name==='AbortError')notify('已取消分享休假表。');
+      else{console.error('休假表截圖失敗',error);notify('休假表截圖失敗，畫面已恢復。',true)}
+    }finally{
+      await restoreScreenshotState(state);
+    }
   }
   function leavePeopleForDate(date,entries){
     return activeStaff().filter(person=>{
@@ -76,7 +129,7 @@
     for(let i=0;i<first;i++)cells.push('<div class="monthDay outside"></div>');
     for(let day=1;day<=days;day++){
       const date=dateAt(day),entries=draft.exceptions?.[date]||{},personPick=personMode?.selected?.has(date),leavePeople=leavePeopleForDate(date,entries),nameSize=Math.min(5,Math.max(1,leavePeople.length));
-      const names=leavePeople.map(({person,entry})=>`<span class="monthLeaveEntry"><span class="monthLeaveName ${person.role==='technician'?'technician':'designer'}" style="--staff-color:${esc(staffColor(person))}">${esc(personLabel(person))}</span>${leaveSubText(entry)?`<small>${esc(leaveSubText(entry))}</small>`:''}</span>`).join('');
+      const names=leavePeople.map(({person,entry})=>`<span class="monthLeaveEntry"><span class="monthLeaveName ${person.role==='technician'?'technician':'designer'}${person.role==='designer'&&person.name?.trim()==='品婷'?' monthLeaveNameOutlined':''}" style="--staff-color:${esc(staffColor(person))}">${esc(personLabel(person))}</span>${leaveSubText(entry)?`<small>${esc(leaveSubText(entry))}</small>`:''}</span>`).join('');
       const namesBlock=names?`<div class="monthLeaveNames leaveCount${nameSize}">${names}</div>`:'';
       const specialLines=!screenshotMode&&!personMode?activeStaff().filter(p=>staffMatchesDisplay(p)&&entries[p.id]&&entries[p.id].status!=='normal'&&!isRestDisplayStatus(entries[p.id].status)).map(p=>{const entry=entries[p.id];return `<span class="scheduleMark status-${esc(entry.status)}">${esc(roleLabel(p.role).slice(0,1))} ${esc(personLabel(p))} ${esc(statusShort(entry))}</span>`}).join(''):'';
       const personLine=personMode&&personPick?'<span class="scheduleMark personLeaveMarker">✓ 本人休假</span>':'';
@@ -174,6 +227,6 @@
   function renderTodayEvents(){const item=currentStoreData.overrides?.[currentDate],gov=currentGovDays[currentDate],box=$('todayEvents');box.hidden=!item&&!gov;box.innerHTML=(gov?`<span><b>🇹🇼 政府</b> ${esc(gov.name||'政府假日')}</span>`:'')+(item?`<span><b>店況</b> ${esc(storeLabel(item))}</span>`:'')}
   function setCurrentDate(date){currentDate=date;if(currentStoreUnsub)currentStoreUnsub();if(currentLegacyUnsub)currentLegacyUnsub();currentStoreData={overrides:{}};currentGovDays={};if(!db||!date)return;const year=date.slice(0,4);currentGovDays=window.SalonGovCalendar?.cached(Number(year))||{};currentStoreUnsub=storeRef(year).onSnapshot(doc=>{currentStoreData=doc.data()||{overrides:{}};renderTodayEvents()},error=>notify('今日店況讀取失敗：'+error.message,true));window.SalonGovCalendar?.ensureYear(Number(year)).then(data=>{currentGovDays=data.days||{};renderTodayEvents()}).catch(()=>renderTodayEvents())}
   function connect(database){db=database;if(staffUnsub)staffUnsub();staffUnsub=staffRef().onSnapshot(snapshot=>{staff=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderAll()},error=>notify('排班人員讀取失敗：'+error.message,true))}
-  function init(options={}){notify=options.notify||notify;$('scheduleClose').onclick=()=>{if(confirmPersonDiscard()){$('scheduleModal').classList.remove('open');personMode=null;screenshotMode=false;updateDisplayControls()}};$('monthPrev').onclick=()=>shiftMonth(-1);$('monthNext').onclick=()=>shiftMonth(1);$('scheduleMonth').onchange=event=>selectMonth(event.target.value);$('applyFixedOff').onclick=applyFixedOff;$('copyPreviousMonth').onclick=copyPrevious;$('clearMonthSchedule').onclick=()=>{if(confirmPersonDiscard())clearMonth()};$('exportMonth').onclick=exportMonth;$('personLeaveCancel').onclick=cancelPersonMode;$('personLeaveSave').onclick=savePersonMode;$('scheduleScreenshotMode').onclick=toggleScreenshotMode;$('scheduleAnnouncementTitle').onclick=()=>{if(screenshotMode)toggleScreenshotMode()};$('scheduleModal').addEventListener('click',event=>{if(!screenshotMode)return;if(event.target.closest('.monthCalendar,.monthWeek,.scheduleDisplayBar'))return;toggleScreenshotMode()});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&screenshotMode)toggleScreenshotMode()});document.querySelectorAll('[data-schedule-filter]').forEach(button=>button.onclick=()=>setDisplayFilter(button.dataset.scheduleFilter));$('saveMonthSchedule').onclick=saveMonth;$('saveMonthStore').onclick=saveMonthStore;$('nextScheduleDay').onclick=nextDay;document.querySelectorAll('[data-quick-status]').forEach(button=>button.onclick=()=>quickStatus(button.dataset.quickStatus));$('annualClose').onclick=()=>$('annualCalendarModal').classList.remove('open');$('annualPrevMonth').onclick=()=>annualShift(-1);$('annualNextMonth').onclick=()=>annualShift(1);$('annualYear').onchange=()=>openAnnualMonth(`${$('annualYear').value}-01`);$('saveAnnualStore').onclick=saveAnnualStore;Object.entries(STORE).forEach(([value,label])=>{for(const id of ['annualStoreStatus','monthStoreStatus'])$(id)?.append(new Option(label,value))})}
+  function init(options={}){notify=options.notify||notify;$('scheduleClose').onclick=()=>{if(confirmPersonDiscard()){$('scheduleModal').classList.remove('open');personMode=null;screenshotMode=false;updateDisplayControls()}};$('monthPrev').onclick=()=>shiftMonth(-1);$('monthNext').onclick=()=>shiftMonth(1);$('scheduleMonth').onchange=event=>selectMonth(event.target.value);$('applyFixedOff').onclick=applyFixedOff;$('copyPreviousMonth').onclick=copyPrevious;$('clearMonthSchedule').onclick=()=>{if(confirmPersonDiscard())clearMonth()};$('exportMonth').onclick=exportMonth;$('personLeaveCancel').onclick=cancelPersonMode;$('personLeaveSave').onclick=savePersonMode;$('scheduleScreenshotMode').onclick=captureScheduleScreenshot;$('scheduleAnnouncementTitle').onclick=()=>{if(screenshotMode)exitScreenshotMode()};$('scheduleModal').addEventListener('click',event=>{if(!screenshotMode)return;if(event.target.closest('.monthCalendar,.monthWeek,.scheduleDisplayBar'))return;exitScreenshotMode()});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&screenshotMode)exitScreenshotMode()});document.querySelectorAll('[data-schedule-filter]').forEach(button=>button.onclick=()=>setDisplayFilter(button.dataset.scheduleFilter));$('saveMonthSchedule').onclick=saveMonth;$('saveMonthStore').onclick=saveMonthStore;$('nextScheduleDay').onclick=nextDay;document.querySelectorAll('[data-quick-status]').forEach(button=>button.onclick=()=>quickStatus(button.dataset.quickStatus));$('annualClose').onclick=()=>$('annualCalendarModal').classList.remove('open');$('annualPrevMonth').onclick=()=>annualShift(-1);$('annualNextMonth').onclick=()=>annualShift(1);$('annualYear').onchange=()=>openAnnualMonth(`${$('annualYear').value}-01`);$('saveAnnualStore').onclick=saveAnnualStore;Object.entries(STORE).forEach(([value,label])=>{for(const id of ['annualStoreStatus','monthStoreStatus'])$(id)?.append(new Option(label,value))})}
   window.SalonSchedule={init,connect,open,openAnnual,setCurrentDate};
 })();
