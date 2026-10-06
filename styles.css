@@ -78,3 +78,10 @@ body{display:flex;flex-direction:column}
 @media (min-width:1024px) and (max-width:1050px) and (orientation:landscape){
   #scheduleModal:not(.scheduleScreenshot) .scheduleLayout{grid-template-columns:170px minmax(480px,1fr) 340px}
 }
+.personWorkTimes{grid-column:2/-1;display:grid;gap:6px;margin-bottom:6px}
+.specialTimeField{display:grid;gap:3px;font-size:13px;color:#6a5f51}
+.specialTimeField>span{display:flex;gap:5px;align-items:center;min-width:0}
+.specialTimeField input[type=time]{flex:1;min-width:0;min-height:44px;font-size:16px}
+.specialTimeField button{flex:none;min-height:44px;padding:5px 7px;font-size:13px}
+.storeTimeGrid{grid-template-columns:minmax(0,1fr)}
+.storeTimeGrid[hidden]{display:none!important}
