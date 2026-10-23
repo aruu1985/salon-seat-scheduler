@@ -192,6 +192,6 @@ function init(){buildGrid();fillSelects();initZoom();$('dateInput').value=todayL
 init();window.salonNotify=showToast;window.openDangerSettings=openDanger;window.SalonGovCalendar.init({notify:showToast});window.SalonSchedule.init({notify:showToast});window.SalonStaff.init({notify:showToast});window.SalonSettings.init({notify:showToast,openDanger});
 })();
 </script>
-<script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('Service worker registration failed',e)))</script>
+<script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(e=>console.warn('Service worker registration failed',e)))</script>
 </body>
 </html>

@@ -1,8 +1,8 @@
-const CACHE_NAME='salon-seat-v0118-calendar-integration';
+const CACHE_NAME='salon-seat-v0119-designer-markers';
 const APP_SHELL=['./','./index.html','./styles.css','./catalog.js','./staff.js','./gov-calendar.js','./gov-holidays/2026.json','./schedule.js','./settings.js','./firebase-config.js','./manifest.webmanifest','./app-icon.svg'];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener('activate',event=>{
@@ -11,7 +11,8 @@ self.addEventListener('activate',event=>{
 
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;
-  event.respondWith(fetch(event.request).then(response=>{
+  event.respondWith(fetch(event.request,{cache:'no-cache'}).then(response=>{
+    if(!response.ok)return response;
     const copy=response.clone();
     caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy));
     return response;
