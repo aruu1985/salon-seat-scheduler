@@ -1,0 +1,12 @@
+(function(){
+ let interacted=false;document.addEventListener('input',()=>interacted=true,true);document.addEventListener('click',()=>interacted=true,true);
+ const running=document.querySelector('meta[name="app-build"]')?.content;let newest=null,banner;
+ // Never reload automatically. Also refuse a manual update while any editor is open.
+ function editing(){const pending=['syncStatus','monthSaveState','dailySaveState'].some(id=>/等待同步|同步中|同步失敗/.test(document.getElementById(id)?.textContent||''));return pending|| Boolean(document.querySelector('.modal.open,dialog[open]'))||document.getElementById('syncStatus')?.textContent.includes('同步中')||document.getElementById('saveBtn')?.disabled}
+ function display(){if(!newest)return;if(!banner){banner=document.createElement('div');banner.className='updateBanner';banner.setAttribute('role','status');banner.innerHTML='<span></span><button type="button">更新版本</button>';document.body.append(banner);banner.querySelector('button').onclick=()=>{if(editing())return;const url=new URL(location.href);url.searchParams.set('build',newest);location.replace(url.href)}}banner.querySelector('span').textContent=editing()?'新版已就緒，請先儲存並關閉編輯視窗。':'新版已就緒，可更新版本。';banner.querySelector('button').disabled=editing()}
+ async function check(){try{const response=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});if(!response.ok)return;const data=await response.json();if(running&&data.build!==running){newest=data.build;if(!interacted&&!editing()){const url=new URL(location.href);if(url.searchParams.get('build')!==newest){url.searchParams.set('build',newest);location.replace(url.href);return}}display()}}catch(e){/* Offline: keep current screen and drafts. */}}
+ new MutationObserver(display).observe(document.body,{attributes:true,attributeFilter:['class','open'],subtree:true});
+ for(const id of ['syncStatus','monthSaveState','dailySaveState']){const state=document.getElementById(id);if(state)new MutationObserver(display).observe(state,{childList:true,subtree:true,characterData:true})}
+ window.addEventListener('pageshow',check);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});setInterval(check,60000);
+ if('serviceWorker'in navigator)window.addEventListener('load',async()=>{try{const registration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await registration.update()}catch(e){console.warn('Update worker unavailable',e)}});
+})();

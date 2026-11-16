@@ -34,3 +34,28 @@ V0.8.3 保留原有預約管理與 Firestore 即時同步。單做美甲可直�
 4. 透過 HTTPS 網站開啟 `index.html`。多台裝置只要使用相同 Firebase 專案，新增、修改、刪除與拖曳就會即時同步。
 
 > 匿名登入不會改變原有操作方式；Firestore 規則會拒絕未取得 Firebase 身分的存取。若需限制只有店內裝置可用，建議後續改用店員帳號登入。
+
+## V0.12.0 營業時長滾輪版
+
+正常營業時間由店主確認為每日 10:00–19:00，無固定公休、無休息；集中於 `business-hours.js`，不新增 Firestore schema。`storeCalendar/{year}.overrides[date]` 是年度行事曆與月底排班的共同店況來源，優先於舊 `annualCalendars/{year}.events`。政府假日不自動視為店休，人員的上下班時間不視為店的營業時間。店休／春節／不可預約拒絕新增或儲存；課程／會議的時間從正常營業區間扣除，時間不完整時明確提示補齊。
+
+時長以半小時格數儲存，選項上限為當天最長連續營業區間向下取整到半小時，不能跨越中間休息；主、第二服務各自按預約日期解析。儲存及拖曳另行驗證開始與結束時間。舊資料不會自動縮短，超出上限的原值會於滾輪標記；只有使用者儲存才驗證。卡片時長不再額外加上結束時間格，30 分鐘／9 小時分別為 1／18 格。時間軸仍使用原有 08:00 的儲存座標基準，顯示範圍依店況及舊資料向前後擴張。
+
+### 發布與版本一致性
+
+`source/index.html` 是可編輯的頁面來源，根目錄 `index.html` 為產出的正式入口。修改來源 JS、CSS 或頁面後，先執行 `python scripts/build.py`；建置會產生內容雜湊命名的 JS/CSS、同一 build 的入口及 `version.json`，全部一併 commit/push main，沿用 GitHub Pages 原有 branch 發布方式。請勿只改產出的 index 或版本文字。後續發布應保留先前雜湊資源，以供尚未更新的頁面使用。
+
+Service Worker 僅轉送網路請求且不使用舊離線 shell，啟用時只刪除 `salon-seat-` 命名的程式快取，保留 Firestore 的 IndexedDB。程式冷啟動需要網路；已開啟畫面的 Firestore 資料快取不變。HTML 導覽及版本檢查跳過 HTTP cache。版本檢查在 pageshow、回到頁面及每分鐘執行；未操作且沒有編輯視窗時可以安全更新，有編輯操作時顯示更新提示，任何編輯視窗或預約同步中都禁止更新按鈕。沒有 controllerchange 強制重載。
+
+### 隔離測試
+
+測試需 Python Playwright 及 Chromium；於專案根目錄執行本機 HTTP server（8765），再執行：
+
+```
+node tests/hours.cjs
+python tests/browser.py
+python tests/interaction.py
+python tests/update.py
+```
+
+所有瀏覽器功能測試使用 `tests/firebase-mock.js`，攔截外部網路，不連線或寫入正式 Firestore。涵蓋 390×844、820×1180、1440×1000 尺寸；觸控為 Chromium CDP 合成手勢，並非 iPhone/iPad 實機測試。正式 Firestore 讀寫及 Safari 實機仍需使用者驗收。

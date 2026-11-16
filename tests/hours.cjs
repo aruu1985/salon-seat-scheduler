@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const context={window:{},Event:class{}};vm.createContext(context);vm.runInContext(fs.readFileSync('business-hours.js','utf8'),context);const h=context.window.SalonHours,date='2026-11-16';
+const info=(status,startTime,endTime)=>h.resolve(date,{overrides:{[date]:{status,startTime,endTime}}});
+assert.equal(h.resolve(date).max,18);
+for(const [s,e,n] of [['11:00','20:00',18],['08:00','20:00',24],['11:00','16:00',10],['11:00','21:00',20],['06:00','23:00',34]])assert.equal(info('specialHours',s,e).max,n);
+assert.equal(h.validate(info('specialHours','11:00','20:00'),'11:00',18),'');assert.ok(h.validate(info('specialHours','11:00','20:00'),'15:00',18));
+assert.equal(info('closed').max,0);assert.equal(info('noBooking').max,0);assert.equal(info('spring').max,0);
+const split=info('meeting','13:00','14:00');assert.equal(split.max,10);assert.ok(h.validate(split,'12:00',6));assert.equal(h.validate(split,'14:00',10),'');
+assert.equal(info('earlyClose',undefined,'15:00').max,10);assert.equal(info('lateOpen','12:00').max,14);assert.equal(info('training').max,0);
+assert.equal(h.resolve(date,{}, {events:[{date,type:'closed'}]}).max,0);
+assert.equal(h.resolve(date,{overrides:{[date]:{status:'specialOpen',startTime:'08:00',endTime:'20:00'}}},{events:[{date,type:'closed'}]}).max,24);
+assert.equal(h.resolve('2026-11-17',{overrides:{[date]:{status:'closed'}}}).max,18);
+console.log('PASS normal, 9/12/5/10/17 hours, dates, closure, partial overrides, legacy precedence, split intervals, late start');
