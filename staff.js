@@ -4,7 +4,7 @@
   const STATUS={normal:'正常上班',off:'休假',late:'晚到／晚上班',early:'提早下班',afternoon:'下半天',leave:'請假'};
   const COLORS=[['#f6a24c','橘色'],['#fff176','黃色'],['#ff75ad','桃紅色'],['#8ee072','綠色'],['#7dc8ff','藍色'],['#c6a4ff','紫色'],['#81d8d0','蒂芬妮藍']];
   const LEGACY_COLORS={'2':'#f6a24c','3':'#fff176','5':'#ff75ad','6':'#8ee072','7':'#7dc8ff','13':'#81d8d0'};
-  let db=null,currentDate='',currentRole='designer',staff=[],staffing={entries:{}},monthly={exceptions:{}},notify=()=>{},staffUnsubscribe=null,dayUnsubscribe=null,monthUnsubscribe=null,dailySaveTimer=null;
+  let db=null,currentDate='',currentRole='designer',staff=[],staffing={entries:{}},monthly={exceptions:{}},notify=()=>{},staffUnsubscribe=null,dayUnsubscribe=null,monthUnsubscribe=null,dailySaveTimer=null,dateGeneration=0,listenersFailed=false,liveRevision=0;
 
   function staffRef(){return db.collection('salons').doc('default').collection('staff')}
   function dayRef(){return db.collection('salons').doc('default').collection('dates').doc(currentDate)}
@@ -12,7 +12,7 @@
   function sortStaff(items){return [...items].sort((a,b)=>a.role.localeCompare(b.role)||String(a.code).localeCompare(String(b.code),'zh-Hant',{numeric:true}))}
   function staffColor(item){return item?.color||LEGACY_COLORS[String(item?.code)]||'#c6a4ff'}
   function colorOptions(selected){return COLORS.map(([value,label])=>`<option value="${value}" ${value===selected?'selected':''}>${label}</option>`).join('')}
-  function syncAppointmentDesigners(){const select=$('designer'),designers=sortStaff(staff.filter(item=>item.active!==false&&item.role==='designer'));if(!select||!designers.length)return;const selected=select.value;select.innerHTML='<option value="x">不指定／紫</option>'+designers.map(item=>`<option value="${esc(item.code)}">${esc(item.code)} ${esc(item.name||'')}</option>`).join('');if([...select.options].some(option=>option.value===selected))select.value=selected}
+  function syncAppointmentDesigners(){const select=$('designer'),designers=sortStaff(staff.filter(item=>item.active!==false&&item.role==='designer'));if(!select||!designers.length)return;const selected=select.value;select.innerHTML='<option value="x">不指定／紫</option>'+designers.map(item=>`<option value="${esc(item.code)}">${esc(item.code)} ${esc(item.name||'')}</option>`).join('');if(selected&&![...select.options].some(option=>option.value===selected)){const option=new Option(selected+'（原選擇）',selected);option.dataset.history='1';select.add(option)}if(selected)select.value=selected}
   function normalizeStaffing(value={}){
     if(value.entries)return {entries:{...value.entries}};
     const entries={};
@@ -62,7 +62,7 @@
     $('todayDesigners').innerHTML=designers.codes;$('designerNotes').innerHTML=designers.lines;
     $('todayTechnicians').innerHTML=technicians.codes;$('technicianNotes').innerHTML=technicians.lines;
   }
-  function renderAll(){renderMaster();renderDaily();renderDashboard()}
+  function renderAll(){if(!$('peopleModal').classList.contains('open'))renderMaster();else syncAppointmentDesigners();if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()}
   async function addStaff(){
     const role=$('newStaffRole').value,code=$('newStaffCode').value.trim(),name=$('newStaffName').value.trim(),note=$('newStaffNote').value.trim(),fixedOffDay=$('newStaffFixedOff').value,color=role==='designer'?$('newStaffColor').value:null;
     if(!code){notify('請輸入人員編號。',true);return}
@@ -79,13 +79,19 @@
   async function saveDaily(){if(!db)return;const state=$('dailySaveState');try{state.textContent='同步中…';const entries=collectRoleEntries();await dayRef().set({staffing:{entries},staffingUpdatedAtMs:Date.now()},{merge:true});state.textContent='已同步'}catch(error){state.textContent='同步失敗';notify('每日異動儲存失敗：'+error.message,true)}}
   function queueDailySave(){clearTimeout(dailySaveTimer);$('dailySaveState').textContent='等待同步…';dailySaveTimer=setTimeout(saveDaily,350)}
   async function clearDailyRole(){document.querySelectorAll('.dailyStaffRow').forEach(row=>{row.querySelector('.dailyStatus').value='inherit';row.querySelector('.dailyTime').value='';row.querySelector('.dailyNote').value='';syncDailyRow(row)});await saveDaily();renderDaily()}
-  function setDate(date){currentDate=date;if(dayUnsubscribe)dayUnsubscribe();if(monthUnsubscribe)monthUnsubscribe();staffing={entries:{}};monthly={exceptions:{}};renderDaily();renderDashboard();if(!db||!date)return;dayUnsubscribe=dayRef().onSnapshot(doc=>{staffing=normalizeStaffing(doc.data()?.staffing||{});renderDaily();renderDashboard()},error=>notify('每日人員同步失敗：'+error.message,true));monthUnsubscribe=db.collection('salons').doc('default').collection('schedules').doc(date.slice(0,7)).onSnapshot(doc=>{monthly=doc.data()||{exceptions:{}};renderDaily();renderDashboard()},error=>notify('月底排班同步失敗：'+error.message,true))}
-  function connect(database,date){db=database;setDate(date);if(staffUnsubscribe)staffUnsubscribe();staffUnsubscribe=staffRef().onSnapshot(snapshot=>{staff=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderAll()},error=>notify('人員資料同步失敗：'+error.message,true))}
+  function setDate(date,force=false){
+    if(!force&&date===currentDate&&dayUnsubscribe&&monthUnsubscribe)return;
+    const generation=++dateGeneration;currentDate=date;if(dayUnsubscribe)dayUnsubscribe();if(monthUnsubscribe)monthUnsubscribe();staffing={entries:{}};monthly={exceptions:{}};renderAll();if(!db||!date)return;
+    dayUnsubscribe=dayRef().onSnapshot(doc=>{if(generation!==dateGeneration)return;liveRevision++;staffing=normalizeStaffing(doc.data()?.staffing||{});if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(generation!==dateGeneration)return;listenersFailed=true;notify('每日人員同步失敗：'+error.message,true)});
+    monthUnsubscribe=db.collection('salons').doc('default').collection('schedules').doc(date.slice(0,7)).onSnapshot(doc=>{if(generation!==dateGeneration)return;liveRevision++;monthly=doc.data()||{exceptions:{}};if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(generation!==dateGeneration)return;listenersFailed=true;notify('月底排班同步失敗：'+error.message,true)});
+  }
+  function applyRefresh(date,value,revision){if(date!==currentDate||(revision!==undefined&&revision!==liveRevision))return;staff=value.staff;staffing=normalizeStaffing(value.daily.staffing||{});monthly=value.monthly;renderAll();if(listenersFailed){listenersFailed=false;connect(db,date);setDate(date,true)}}
+  function connect(database,date){db=database;setDate(date);if(staffUnsubscribe)staffUnsubscribe();staffUnsubscribe=staffRef().onSnapshot(snapshot=>{liveRevision++;staff=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderAll()},error=>{listenersFailed=true;notify('人員資料同步失敗：'+error.message,true)})}
   function open(){$('peopleModal').classList.add('open');renderMaster()}
   function openDaily(role){currentRole=role;$('dailyStaffModal').classList.add('open');renderDaily()}
   function bindBoard(id,role){const board=$(id);board.onclick=()=>openDaily(role);board.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openDaily(role)}}}
   function syncNewRoleFields(){const designer=$('newStaffRole').value==='designer';$('newStaffColor').hidden=!designer;$('newStaffFixedOff').hidden=!designer}
   function colorForCode(code){if(String(code)==='x')return '#c6a4ff';const person=staff.find(item=>item.role==='designer'&&(String(item.code)===String(code)||(item.previousCodes||[]).map(String).includes(String(code))));return staffColor(person||{code})}
   function init(options={}){notify=options.notify||notify;$('addStaffBtn').onclick=addStaff;$('newStaffRole').onchange=syncNewRoleFields;syncNewRoleFields();$('peopleClose').onclick=()=>$('peopleModal').classList.remove('open');$('peopleModal').onclick=event=>{if(event.target===$('peopleModal'))$('peopleModal').classList.remove('open')};$('saveDailyStaffBtn').onclick=saveDaily;$('clearDailyStaffBtn').onclick=clearDailyRole;$('dailyStaffClose').onclick=$('dailyStaffCancel').onclick=()=>$('dailyStaffModal').classList.remove('open');$('dailyStaffModal').onclick=event=>{if(event.target===$('dailyStaffModal'))$('dailyStaffModal').classList.remove('open')};bindBoard('designerBoard','designer');bindBoard('technicianBoard','technician')}
-  window.SalonStaff={init,connect,setDate,open,openDaily,colorForCode,colorForPerson:staffColor};
+  window.SalonStaff={init,connect,setDate,applyRefresh,revision:()=>liveRevision,open,openDaily,colorForCode,colorForPerson:staffColor};
 })();

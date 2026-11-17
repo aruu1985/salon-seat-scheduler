@@ -19,6 +19,20 @@
     return {date,intervals,max:Math.floor(Math.max(0,...intervals.map(([s,e])=>(e-s)/30))),reason:''};
   }
   function validate(info,time,duration){const start=minutes(time),end=start+Number(duration)*30;if(!Number.isInteger(Number(duration))||duration<1)return '請選擇有效時長';if(!info.intervals.some(([s,e])=>start>=s&&end<=e))return info.reason||'預約超出當日連續營業區間，請調整開始時間或時長';return ''}
-  async function get(date){if(!database)throw new Error('營業資料尚未連線，請稍後再試');const year=date.slice(0,4);if(!years.has(year)){let ready;const promise=new Promise(r=>ready=r),state={calendar:null,annual:null};years.set(year,promise);for(const [key,collection] of [['calendar','storeCalendar'],['annual','annualCalendars']])database.collection('salons').doc('default').collection(collection).doc(year).onSnapshot(doc=>{state[key]=doc.data()||{};if(state.calendar&&state.annual){ready(state);window.dispatchEvent(new Event('salon-hours-changed'))}},error=>{years.delete(year);ready({error});});}const state=await years.get(year);if(state.error)throw state.error;return resolve(date,state.calendar,state.annual)}
-  window.SalonHours={resolve,validate,minutes,get,connect:db=>{database=db}};
+  let primaryYear='';
+  function prune(year){for(const [key,entry] of years)if(key!==year&&key!==primaryYear){entry.unsub.forEach(stop=>stop());entry.resolve({error:new Error('日期已切換')});years.delete(key)}}
+  async function get(date){
+    if(!database)throw new Error('營業資料尚未連線，請稍後再試');const year=date.slice(0,4);if(year!==primaryYear)prune(year);
+    if(years.get(year)?.state.error){years.get(year).unsub.forEach(stop=>stop());years.delete(year)}
+    if(!years.has(year)){
+      const entry={state:{calendar:null,annual:null},unsub:[],revision:0};entry.ready=new Promise(resolve=>entry.resolve=resolve);years.set(year,entry);
+      for(const [key,collection] of [['calendar','storeCalendar'],['annual','annualCalendars']])entry.unsub.push(database.collection('salons').doc('default').collection(collection).doc(year).onSnapshot(doc=>{
+        if(years.get(year)!==entry)return;entry.revision++;entry.state[key]=doc.data()||{};if(entry.state.calendar&&entry.state.annual){entry.resolve(entry.state);window.dispatchEvent(new Event('salon-hours-changed'))}
+      },error=>{entry.state.error=error;entry.resolve(entry.state)}));
+    }
+    const state=await years.get(year).ready;if(state.error)throw state.error;return resolve(date,state.calendar,state.annual);
+  }
+  function applyRefresh(date,value,revision){const entry=years.get(date.slice(0,4));if(entry&&(revision===undefined||entry.revision===revision)){entry.state.calendar=value.calendar;entry.state.annual=value.annual;entry.state.error=null;entry.resolve(entry.state)}return resolve(date,entry?.state.calendar||value.calendar,entry?.state.annual||value.annual)}
+  function setDate(date){primaryYear=date.slice(0,4);prune(primaryYear)}
+  window.SalonHours={resolve,validate,minutes,get,setDate,applyRefresh,revision:date=>years.get(date.slice(0,4))?.revision,connect:db=>{database=db}};
 })();

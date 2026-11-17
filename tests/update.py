@@ -22,7 +22,7 @@ with sync_playwright() as p:
  page.wait_for_selector('.updateBanner');assert page.locator('.updateBanner button').is_disabled();assert page.locator('#name').input_value()=='尚未儲存姓名';assert page.evaluate('testWrites.length')==writes
  page.locator('#cancelBtn').click();assert page.locator('.updateBanner button').is_enabled()
  # Unsaved scheduling/store editor fields must also survive a version check.
- page.locator('#settingsBtn').click();page.locator('#monthlyScheduleBtn').click();page.locator('#monthStoreNote').fill('未儲存店況')
+ page.locator('#settingsBtn').click();page.locator('#monthlyScheduleBtn').click();page.locator('#monthStoreNote').fill('未儲存店況');page.evaluate("testEmit('salons/default/storeCalendar/'+document.querySelector('#dateInput').value.slice(0,4))")
  page.evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow'))");page.wait_for_timeout(150);assert page.locator('.updateBanner button').is_disabled();assert page.locator('#monthStoreNote').input_value()=='未儲存店況'
  page.locator('#scheduleClose').click();page.locator('#settingsBtn').click();page.locator('#businessSettingsBtn').click();page.locator('#annualStoreNote').fill('未儲存年度店況')
  page.evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow'))");page.wait_for_timeout(150);assert page.locator('.updateBanner button').is_disabled();assert page.locator('#annualStoreNote').input_value()=='未儲存年度店況'
