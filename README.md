@@ -59,3 +59,5 @@ python tests/update.py
 ```
 
 所有瀏覽器功能測試使用 `tests/firebase-mock.js`，攔截外部網路，不連線或寫入正式 Firestore。涵蓋 390×844、820×1180、1440×1000 尺寸；觸控為 Chromium CDP 合成手勢，並非 iPhone/iPad 實機測試。正式 Firestore 讀寫及 Safari 實機仍需使用者驗收。
+
+卡片重疊修正：`seat-layout.js` 使用與實際排位相同的半開時間區間，結束時間等於下一筆開始可正常接續。讀取到同座位真正衝突的預約時，只在畫面上並排並顯示「⚠ 衝突」與紅色虛線，不改動預約時長、起訖或座位資料。額外驗證：`node tests/seat-layout.cjs`、`python tests/overlap.py`。
