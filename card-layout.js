@@ -35,7 +35,7 @@
     apply(best.mode,best.step,best.lines);
     if(note&&best.mode==='normal'){
       const available=box.bottom-note.getBoundingClientRect().top,lh=parseFloat(getComputedStyle(note).lineHeight)||11;
-      content.style.setProperty('--card-note-lines',String(Math.min(12,Math.max(1,Math.floor(available/lh)))));
+      content.style.setProperty('--card-note-lines',String(Math.max(1,Math.floor(available/lh))));
     }
     const last=content.lastElementChild;content.style.justifyContent=(last?.getBoundingClientRect().bottom||box.top)<=box.bottom+.3?'center':'flex-start';
     card.dataset.nameComplete=String(textWidth(name)<=name.getBoundingClientRect().width-.2);

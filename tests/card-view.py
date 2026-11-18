@@ -28,6 +28,7 @@ with sync_playwright() as p:
      node=card.locator('.name');assert node.evaluate("e=>getComputedStyle(e).whiteSpace")=='nowrap';assert node.evaluate("e=>parseFloat(getComputedStyle(e).fontSize)")>=10
      assert card.locator('.cardNote').count()==(1 if i%2==0 else 0)
      content=card.locator('.cardContent').bounding_box();assert content['x']>=bounds['x'] and content['x']+content['width']<=bounds['x']+bounds['width']+.5
+     if duration==8 and scale==1 and i==4:assert card.locator('.cardContent').evaluate("e=>Number(e.style.getPropertyValue('--card-note-lines'))")>12
      if duration>=2 and i<4:assert card.get_attribute('data-name-complete')=='true',(engine,width,duration,scale,names[i],card.locator('.name').evaluate('e=>({w:e.getBoundingClientRect().width,font:getComputedStyle(e).fontSize})'))
      assert node.evaluate("e=>parseFloat(getComputedStyle(e).fontSize)")<=18.1
     assert page.evaluate('JSON.stringify(testDocs)')==before;assert page.evaluate('testWrites.length')==0
