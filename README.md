@@ -73,3 +73,9 @@ python tests/update.py
 `appointment-format.js` 集中處理稱謂／身分與服務代號：表單保留原操作並顯示「原名（代號）」，卡片只在呈現時套用簡碼，checkbox value、姓名輸入值與 Firestore 仍保持完整。原「小孩」快捷保留；別名僅比對姓名結尾。S洗保留，K剪顯示剪；K瀏、燙瀏海、凝膠指甲及其他未知項目保留名稱。卡片維持實際時間高度與衝突並排，姓名／服務單行量測，不以文字需求改動排程。
 
 新增測試：`node tests/appointment-format.cjs`、`python tests/formatting.py`。完整對照、正式清單唯讀檢查及測試限制見 `docs/validation-v0.12.2.md`。
+
+## V0.12.3 卡片排版與完整細項
+
+`card-layout.js` 依每張卡片縮放後的實際尺寸調整文字，姓名維持單行與可讀下限，服務一／兩行、備註依剩餘高度配置；不改欄寬、時間格或卡片幾何。點卡片直接在原操作視窗上方顯示完整唯讀資料（含第二服務），內容獨立捲動，下方保留編輯、刪除、關閉；刪除沿用原本四階段確認。細項讀取既有記憶體模型與主檔，不建立 Firestore 副本。備註 textarea 保留既有換行。
+
+新增 `appointment-details.js`、`tests/card-view.py`、`tests/appointment-details.cjs` 與隔離刪除測試 adapter；詳見 `docs/validation-v0.12.3.md`。已以 Chromium／WebKit 引擎模擬三種尺寸；不代表 Safari 實機驗收。
