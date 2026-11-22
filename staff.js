@@ -55,7 +55,7 @@
     const late=[],early=[],afternoon=[],notes=[];
     for(const item of working){const entry=entryFor(item.id),label=`${esc(item.code)}（${esc(entry.time||'未填')}）`;if(entry.status==='late')late.push(label);else if(entry.status==='early')early.push(label);else if(entry.status==='afternoon')afternoon.push(label);if(entry.note)notes.push(`${esc(item.code)}：${esc(entry.note)}`)}
     const lines=[];if(late.length)lines.push(`<span>晚到：${late.join('、')}</span>`);if(early.length)lines.push(`<span>早下班：${early.join('、')}</span>`);if(afternoon.length)lines.push(`<span>下半天：${afternoon.join('、')}</span>`);if(notes.length)lines.push(`<span class="dailyExtraNote">備註：${notes.join('；')}</span>`);
-    return {codes:'上班：'+(codes||'無'),lines:lines.join('')};
+    return {codes:codes||'無',lines:lines.join('')};
   }
   function renderDashboard(){
     const designers=dashboardLines('designer'),technicians=dashboardLines('technician');

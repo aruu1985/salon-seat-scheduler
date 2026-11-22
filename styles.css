@@ -23,13 +23,18 @@ body{display:flex;flex-direction:column}
 .noteDisplayToggle{display:flex!important;align-items:center;gap:7px;margin-top:7px!important;font-size:14px!important;color:var(--ink)!important}
 .noteDisplayToggle input{width:auto}
 .appt .cardNote{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;text-overflow:ellipsis}
-.todayBoard{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
-.todayTeam{padding:8px 10px;border:1px solid #cbbda8;border-radius:10px;background:#fffaf0;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.todayTeam:hover,.todayTeam:focus{outline:none;border-color:#6d8fc7;box-shadow:0 0 0 2px rgba(64,112,180,.15)}
-.teamHeading{display:flex;justify-content:space-between;align-items:center}.teamHeading span{font-size:12px;color:#5575a5}
-.todayTeam strong{display:block;font-size:13px;color:#655a4d}
-.teamCodes{margin-top:3px;font-size:22px;font-weight:900;letter-spacing:.05em}
-.teamNotes{display:flex;flex-direction:column;gap:4px;margin-top:4px;font-size:13px;font-weight:800}
+.todayBoard{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;max-width:100%;min-width:0;margin:5px 0;padding:3px 8px;border:1px solid #cbbda8;border-radius:9px;background:#fffaf0;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;font-size:16px;white-space:nowrap}
+.todayBoard .todayTeam{display:inline-flex;flex:0 0 auto;align-items:center;gap:5px;min-height:32px;margin:0;padding:3px 2px;border:0;border-radius:5px;background:transparent;color:inherit;font:inherit;white-space:nowrap;box-shadow:none;cursor:pointer}
+.todayBoard .todayTeam:hover,.todayBoard .todayTeam:focus-visible{outline:2px solid #6d8fc7;outline-offset:-2px;background:#edf3ff}
+.todayBoard .teamHeading{display:inline}.todayBoard strong{display:inline;font:inherit;font-weight:600;color:#655a4d}
+.todayBoard .teamCodes{margin:0;font:inherit;font-weight:600;letter-spacing:normal}
+.todayBoard .teamNotes{display:inline-flex;flex-direction:row;gap:7px;margin:0;font-size:12px;font-weight:500}.todayBoard .teamNotes:empty{display:none}
+.teamEdit{display:inline-grid;place-items:center;min-width:22px;color:#5575a5;font-size:16px}.teamDivider{flex:0 0 auto;color:#a99b87}
+.toolbar .dateControl{position:relative;display:inline-flex;flex:0 0 auto;align-items:center;min-height:40px;padding:4px 10px;border:1px solid #c8bda9;border-radius:18px;background:#eee;font-size:17px;white-space:nowrap;cursor:pointer}
+.toolbar .dateControl input[type=date]{position:absolute;inset:0;width:100%;height:100%;min-width:0;margin:0;padding:0;opacity:0;cursor:pointer}
+.dateControl::after{content:"▾";margin-left:6px;font-size:12px;pointer-events:none}
+.dateControl:focus-within{outline:2px solid #6d8fc7;outline-offset:1px}
+@media(max-width:480px){.todayBoard{gap:3px;padding:2px 5px;font-size:14px}.todayBoard .todayTeam{gap:3px}.teamEdit{min-width:18px;font-size:15px}.todayBoard .teamNotes{font-size:12px}}
 .teamNotes span{display:inline-block}.teamNotes .leaveAlert{color:#c40020}.teamNotes .offAlert{color:#c25a16}.todayEvents{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0;padding:7px 10px;border:1px solid #e3ad52;border-radius:9px;background:#fff4d8;color:#754b08;font-size:13px}.todayEvents[hidden]{display:none}
 .settingsPanel{max-width:620px}.settingsMenu{display:grid;grid-template-columns:1fr 1fr;gap:9px}.settingsMenu button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:13px}.settingsMenu strong{font-size:17px}.settingsMenu small{margin-top:4px;color:#75695b;white-space:normal}.settingsMenu .danger small{color:#9b2737}
 .peoplePanel{max-width:920px}.peopleSettingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.settingCard{padding:11px;border:1px solid #d8ccbc;border-radius:11px;background:#fff}.settingCard h3{margin:0 0 8px}.staffAddForm{display:grid;grid-template-columns:120px 1fr;gap:7px}.staffAddForm input,.staffAddForm select,.staffRow input,.staffRow select,.dailyStaffRow input,.dailyStaffRow select{min-width:0;border:1px solid #bfb29f;border-radius:8px;background:#fff;padding:8px;font-size:15px}.staffAddForm button{grid-column:1/-1}.staffList,.dailyStaffList{display:grid;gap:7px;max-height:380px;overflow:auto}.staffRow{display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,1fr) auto auto auto;gap:6px;align-items:center;padding:7px;border:1px solid #e0d6c9;border-radius:8px;background:#fffaf2}.staffIdentity{min-width:0}.dailyStaffPanel{max-width:900px}.dailyStaffTitle{display:flex;justify-content:space-between;align-items:center}.dailyStaffTitle h2{margin:0}.dailyStaffTitle small{color:#75695b}.dailyDateLabel{margin:5px 0 12px;font-weight:900;color:#4f6078}.dailyTableHead,.dailyStaffRow{display:grid;grid-template-columns:minmax(120px,.9fr) minmax(200px,1.35fr) 120px minmax(140px,1fr);gap:8px;align-items:center}.dailyTableHead{padding:7px 9px;background:#f4eddf;border-radius:8px;font-size:12px;font-weight:900;color:#655a4d}.dailyStaffRow{padding:8px;border-bottom:1px solid #e0d6c9;background:#fff}.dailyStatus.status-inherit{border-color:#9b9387;background:#f7f4ef}.dailyStatus.status-normal{border-color:#6090e8;background:#f4f8ff}.dailyStatus.status-off{border-color:#df8a51;background:#fff3e9}.dailyStatus.status-late{border-color:#e6a83f;background:#fff9eb}.dailyStatus.status-early{border-color:#6daf61;background:#f4fff1}.dailyStatus.status-afternoon{border-color:#9a6cc7;background:#faf3ff}.dailyStatus.status-leave{border-color:#d35454;background:#fff2f2;color:#a00019}.statusLegend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:12px}.normalDot{color:#3976d8}.lateDot{color:#d88c12}.earlyDot{color:#438e38}.halfDot{color:#844caf}.leaveDot{color:#bd2637}.dailySaveState,.monthSaveState{color:#247233;font-size:13px;font-weight:900}.dailySaveState{margin-top:10px}.dailyActions .actionSpacer{flex:1}.dailyExtraNote{color:#6b5b46}
@@ -39,7 +44,7 @@ body{display:flex;flex-direction:column}
   .top .controlGroup{flex-wrap:wrap}
   .serviceAdd{align-items:stretch}
   .serviceAdd button{padding-inline:9px}
-  .todayBoard{grid-template-columns:1fr}.teamCodes{font-size:20px}
+
   .settingsMenu,.peopleSettingsGrid{grid-template-columns:1fr}.dailyStaffCard{grid-column:auto}
   .staffAddForm{grid-template-columns:1fr}.staffRow{grid-template-columns:1fr}.staffRow button{width:100%}
   .dailyTableHead{display:none}.dailyStaffRow{grid-template-columns:44px 1fr;gap:7px}.dailyStaffRow .dailyIdentity{font-size:16px}.dailyStaffRow .dailyStatus,.dailyStaffRow .dailyTime,.dailyStaffRow .dailyNote{grid-column:2/-1}.dailyStaffPanel{padding:10px}.dailyActions{gap:6px}.dailyActions .actionSpacer{display:none}
