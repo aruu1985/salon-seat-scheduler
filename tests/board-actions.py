@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 from pathlib import Path
 from datetime import datetime,timezone
 import os,json
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:8776/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8776/')
 engine=os.environ.get('HEADER_ENGINE','chromium')
 fixture={f'salons/default/dates/2026-11-22/appointments/{i}':{'name':'測試客人'+i,'services':['洗剪'],'duration':2,'startTime':'10:00','start':4,'col':col,'designer':'6','note':'測試備註','showNoteOnCard':True} for i,col in [('a',1),('b',3)]}
 with sync_playwright() as p:

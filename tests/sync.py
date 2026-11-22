@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 from datetime import date,timedelta
 import json
 ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
-TODAY=date.today().isoformat();YESTERDAY=(date.today()-timedelta(days=1)).isoformat();FUTURE=(date.today()+timedelta(days=40)).isoformat()
+anchor=date.fromisoformat(os.environ.get('SALON_TEST_DATE',date.today().isoformat()));TODAY=anchor.isoformat();YESTERDAY=(anchor-timedelta(days=1)).isoformat();FUTURE=(anchor+timedelta(days=40)).isoformat()
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  for width,height in [(390,844),(820,1180),(1440,1000)]:

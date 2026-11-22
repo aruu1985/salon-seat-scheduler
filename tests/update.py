@@ -1,7 +1,8 @@
+import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json,re,hashlib
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:8765/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 html=(ROOT/'index.html').read_text();build=json.loads((ROOT/'version.json').read_text())['build']
 assert f'app-build" content="{build}' in html
 for file in re.findall(r'(?:src|href)="([^"?]+\.(?:js|css))"',html):
