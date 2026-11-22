@@ -25,12 +25,13 @@ with sync_playwright() as p:
   check_geometry();page.locator('#zoomFit').click();check_geometry();page.locator('#zoomReset').click()
   page.locator('#refreshBtn').click();page.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'");assert card.locator('.name').inner_text()=='林素芬J';assert page.evaluate('JSON.stringify(testDocs)')==before;assert page.evaluate('testWrites.length')==0
   card.click();page.locator('#actionEdit').click();assert page.locator('#name').input_value()=='林素芬小姐';assert page.locator('#serviceChecks input[value="護"]').is_checked();assert page.locator('#serviceChecks label').filter(has_text='K剪（剪）').count()==1
-  for ending,label in [('先生','先生（S）'),('小姐','小姐（J）'),('女士','女士（J）'),('太太','太太（T）'),('幼稚園','幼稚園（幼）'),('國中生','國中生（國）'),('高中生','高中生（高）'),('小孩','小孩')]:
+  for ending,label in [('先生','先生（S）'),('小姐','小姐（J）'),('女士','女士（J）'),('太太','太太（T）'),('幼稚園','幼稚園（幼）'),('國小生','國小生（小）'),('國中生','國中生（國）'),('高中生','高中生（高）'),('小孩','小孩')]:
    button=page.locator('[data-suffix="'+ending+'"]');assert button.inner_text()==label;page.locator('#name').fill('陳先生');button.click();button.click();assert page.locator('#name').input_value()=='陳'+ending
   page.locator('#cancelBtn').click();page.locator('[data-id=unknown]').click();page.locator('#actionEdit').click();assert page.locator('#serviceChecks input[value="未定義舊項目"]').is_checked();assert page.locator('#serviceChecks input[value="凝膠指甲"]').is_checked();page.locator('#cancelBtn').click()
   # Saving a new record keeps full raw name/services, with no UI labels in storage.
-  page.locator('#addBtn').click();page.locator('#name').fill('王小弟');page.locator('[data-suffix="幼稚園"]').click();page.locator('#serviceChecks input[value="K剪"]').check();page.locator('#serviceChecks input[value="美甲"]').check();page.locator('#saveBtn').click();page.wait_for_function("!document.querySelector('#modal').classList.contains('open')")
-  saved=page.evaluate('testWrites[0].data');assert saved['name']=='王小弟幼稚園';assert saved['services']==['K剪','美甲'];assert saved['duration']==4;assert '（' not in json.dumps(saved,ensure_ascii=False)
+  page.locator('#addBtn').click();page.locator('#name').fill('王小弟');page.locator('[data-suffix="國小生"]').click();page.locator('#serviceChecks input[value="K剪"]').check();page.locator('#serviceChecks input[value="美甲"]').check();page.locator('#saveBtn').click();page.wait_for_function("!document.querySelector('#modal').classList.contains('open')")
+  saved=page.evaluate('testWrites[0].data');assert saved['name']=='王小弟國小生';assert saved['services']==['K剪','美甲'];assert saved['duration']==4;assert page.locator('.appt .name').filter(has_text='王小弟小').count()==1;assert '（' not in json.dumps(saved,ensure_ascii=False)
+  page.locator('.appt').filter(has_text='王小弟小').click();assert '王小弟國小生' in page.locator('#appointmentDetails').inner_text();page.locator('#actionEdit').click();assert page.locator('#name').input_value()=='王小弟國小生';page.locator('#cancelBtn').click()
   # Existing records stay byte-for-byte unchanged; exactly the requested new record was written.
   for raw in records:assert page.evaluate('key=>testDocs[key]',path+'/'+raw['id'])==raw
   # True conflicts remain marked, within their real durations, including a 30-minute conflict.

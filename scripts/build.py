@@ -13,9 +13,9 @@ for name in assets:
  (out/hashed).write_bytes(data);html=html.replace('"'+name+'"','"'+hashed+'"')
 build=hashlib.sha256(html.encode()).hexdigest()[:16]
 html=html.replace('<head>','<head>\n<meta name="app-build" content="'+build+'">\n<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">')
-html=html.replace('V0.12.3 卡片排版與完整細項版','V0.12.3 卡片排版與完整細項版 · '+build)
+html=html.replace('V0.12.4 新增國小身分版','V0.12.4 新增國小身分版 · '+build)
 (out/'index.html').write_text(html)
-(out/'version.json').write_text(json.dumps({'version':'0.12.3','build':build}))
+(out/'version.json').write_text(json.dumps({'version':'0.12.4','build':build}))
 for name in ['sw.js','manifest.webmanifest','app-icon.svg','gov-holidays']:
  src=root/name
  if src.is_dir():shutil.copytree(src,out/name)
