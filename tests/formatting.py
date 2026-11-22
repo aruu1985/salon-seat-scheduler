@@ -1,7 +1,8 @@
+import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:8765/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 CUSTOM={'salons/default/services/fringe':{'name':'K瀏','active':True},'salons/default/services/perm-fringe':{'name':'燙瀏海','active':True},'salons/default/services/gel':{'name':'凝膠指甲','active':True}}
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
@@ -23,7 +24,7 @@ with sync_playwright() as p:
      assert item.evaluate("e=>e.getBoundingClientRect().height<=parseFloat(getComputedStyle(e).lineHeight)+1")
    short=page.locator('[data-id=short]').bounding_box();following=page.locator('[data-id=next]').bounding_box();assert short['y']+short['height']<=following['y']
   check_geometry();page.locator('#zoomFit').click();check_geometry();page.locator('#zoomReset').click()
-  page.locator('#refreshBtn').click();page.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'");assert card.locator('.name').inner_text()=='林素芬J';assert page.evaluate('JSON.stringify(testDocs)')==before;assert page.evaluate('testWrites.length')==0
+  page.locator('#refreshBtn').click();page.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='success'");assert card.locator('.name').inner_text()=='林素芬J';assert page.evaluate('JSON.stringify(testDocs)')==before;assert page.evaluate('testWrites.length')==0
   card.click();page.locator('#actionEdit').click();assert page.locator('#name').input_value()=='林素芬小姐';assert page.locator('#serviceChecks input[value="護"]').is_checked();assert page.locator('#serviceChecks label').filter(has_text='K剪（剪）').count()==1
   for ending,label in [('先生','先生（S）'),('小姐','小姐（J）'),('女士','女士（J）'),('太太','太太（T）'),('幼稚園','幼稚園（幼）'),('國小生','國小生（小）'),('國中生','國中生（國）'),('高中生','高中生（高）'),('小孩','小孩')]:
    button=page.locator('[data-suffix="'+ending+'"]');assert button.inner_text()==label;page.locator('#name').fill('陳先生');button.click();button.click();assert page.locator('#name').input_value()=='陳'+ending

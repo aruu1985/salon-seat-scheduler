@@ -1,9 +1,10 @@
+import os
 """Isolated SDK snapshot/transaction simulation. Never connects to production Firestore."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from datetime import date,timedelta
 import json
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:8765/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 TODAY=date.today().isoformat();YESTERDAY=(date.today()-timedelta(days=1)).isoformat();FUTURE=(date.today()+timedelta(days=40)).isoformat()
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
@@ -34,7 +35,7 @@ with sync_playwright() as p:
    inject(a,'salons/default/staff/mock-tech',{'role':'technician','code':'21','name':'模擬技術師','active':True},False)
    inject(a,f'salons/default/schedules/{day[:7]}',{'exceptions':{day:{'mock-tech':{'status':'late','time':'12:00'}}}},False)
    inject(a,f'salons/default/storeCalendar/{day[:4]}',{'overrides':{day:{'status':'extended','startTime':'10:00','endTime':'21:00'}}},False)
-   a.locator('#refreshBtn').click();a.wait_for_function("document.getElementById('dataSyncResult').textContent==='已更新'")
+   a.locator('#refreshBtn').click();a.wait_for_function("document.getElementById('dataSyncResult').dataset.state==='success'")
    assert a.locator('#dateInput').input_value()==day;assert a.locator('.appt').count()==1;assert '伺服器最新' in a.locator('.appt').inner_text();assert '12:00' in a.locator('#technicianNotes').inner_text();assert '21:00' in a.locator('#todayEvents').inner_text()
    assert a.evaluate("testReads.slice(-6).every(x=>x.options?.source==='server')")
    assert a.evaluate('testWrites.length')==0
@@ -56,7 +57,7 @@ with sync_playwright() as p:
   b.locator('.appt').click();b.locator('#actionEdit').click();b.locator('#name').fill('B 最新資料');b.locator('#saveBtn').click();b.wait_for_function("!document.getElementById('modal').classList.contains('open')");deliver();a.wait_for_function("!document.querySelector('#editConflict').hidden")
   assert a.locator('#name').input_value()=='A 未儲存草稿';writes=a.evaluate('testWrites.length');a.locator('#saveBtn').click();a.wait_for_timeout(150);assert a.evaluate('testWrites.length')==writes;assert shared[path]['name']=='B 最新資料';assert a.locator('#name').input_value()=='A 未儲存草稿'
   # An explicit refresh during editing is allowed programmatically and preserves every draft field.
-  a.evaluate("document.querySelector('#refreshBtn').click()");a.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'");assert a.locator('#name').input_value()=='A 未儲存草稿'
+  a.evaluate("document.querySelector('#refreshBtn').click()");a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='success'");assert a.locator('#name').input_value()=='A 未儲存草稿'
   a.locator('#cancelBtn').click()
   # Simulate a remote SDK delete; no production deletion or dangerous admin flow is exercised.
   b.evaluate('path=>firebase.firestore().collection("salons").doc("default").collection("dates").doc(path.split("/")[3]).collection("appointments").doc(path.split("/").pop()).delete()',path)
@@ -69,7 +70,7 @@ with sync_playwright() as p:
   a.evaluate("testReadFailures=['salons/default/schedules/'+document.getElementById('dateInput').value.slice(0,7)]");a.locator('#refreshBtn').click();a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='error'");assert '更新失敗' in a.locator('#syncStatus').inner_text()
   a.evaluate("testEmit('salons/default/dates/'+document.getElementById('dateInput').value+'/appointments')");assert '更新失敗' in a.locator('#dataSyncResult').inner_text();a.evaluate('testReadFailures=[]')
   # Offline is a visible failure; restoring network invokes the common server refresh.
-  contexts[0].set_offline(True);a.locator('#refreshBtn').click();a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='error'");contexts[0].set_offline(False);a.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'")
+  contexts[0].set_offline(True);a.locator('#refreshBtn').click();a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='error'");contexts[0].set_offline(False);a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='success'")
   # A slow earlier date refresh cannot overwrite the current date or its result.
   a.evaluate("()=>{window.testReadOverride=(path,isDoc)=>path.endsWith('/appointments')?new Promise(resolve=>window.releaseOldRead=()=>resolve({docs:[],metadata:{fromCache:false}})):null}")
   a.locator('#refreshBtn').click();a.wait_for_function("typeof window.releaseOldRead==='function'");choose(a,FUTURE);a.evaluate('releaseOldRead()');a.wait_for_timeout(100);assert a.locator('#dateInput').input_value()==FUTURE;assert a.locator('#dataSyncResult').inner_text()==''
@@ -77,11 +78,11 @@ with sync_playwright() as p:
   a.evaluate("()=>{window.testReadOverride=(path,isDoc)=>path.endsWith('/appointments')?new Promise(resolve=>window.releaseSameRead=()=>resolve({docs:[{id:'old-read',data:()=>({name:'舊回覆',col:1,start:4,duration:2})}],metadata:{fromCache:false}})):null}")
   a.locator('#refreshBtn').click();a.wait_for_function("typeof releaseSameRead==='function'")
   inject(a,f'salons/default/dates/{FUTURE}/appointments/new-live',{'name':'新即時事件','col':1,'start':4,'duration':2})
-  a.evaluate('releaseSameRead()');a.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'");assert a.locator('.appt').count()==1;assert '新即時事件' in a.locator('.appt').inner_text()
+  a.evaluate('releaseSameRead()');a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='success'");assert a.locator('.appt').count()==1;assert '新即時事件' in a.locator('.appt').inner_text()
   a.evaluate("()=>{window.testReadOverride=null}")
   # A terminated stream is replaced once after a successful server refresh.
   a.evaluate("()=>{const path='salons/default/dates/'+document.getElementById('dateInput').value+'/appointments';testListeners[path][0].error(new Error('模擬監聽終止'))}")
-  a.locator('#refreshBtn').click();a.wait_for_function("document.querySelector('#dataSyncResult').textContent==='已更新'")
+  a.locator('#refreshBtn').click();a.wait_for_function("document.querySelector('#dataSyncResult').dataset.state==='success'")
   assert a.evaluate("Object.entries(testListeners).filter(([p])=>p.endsWith('/appointments')).reduce((sum,[p,list])=>sum+list.length,0)")==1
   inject(a,f'salons/default/dates/{FUTURE}/appointments/recovered',{'name':'監聽恢復','col':2,'start':4,'duration':2});assert a.locator('.appt').count()==2
   assert not errors,errors
