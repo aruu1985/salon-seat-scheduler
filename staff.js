@@ -60,7 +60,7 @@
   function renderDashboard(){
     const designers=dashboardLines('designer'),technicians=dashboardLines('technician');
     $('todayDesigners').innerHTML=designers.codes;$('designerNotes').innerHTML=designers.lines;
-    $('todayTechnicians').innerHTML=technicians.codes;$('technicianNotes').innerHTML=technicians.lines;
+    $('todayTechnicians').innerHTML=technicians.codes;$('technicianNotes').innerHTML=technicians.lines;window.salonCapacityNotice?.();
   }
   function renderAll(){if(!$('peopleModal').classList.contains('open'))renderMaster();else syncAppointmentDesigners();if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()}
   async function addStaff(){
@@ -77,10 +77,10 @@
     return next;
   }
   function captureDaily(){return {date:currentDate,role:currentRole,ids:staff.filter(p=>p.role===currentRole).map(p=>p.id),entries:collectRoleEntries()}}
-  function dailyState(){const state=$('dailySaveState');state.textContent=dailyPending?'等待同步…':dailyInFlight?'同步中…':failedDaily.size?'同步失敗':'已同步'}
+  function dailyState(){const state=$('dailySaveState');state.textContent=dailyPending?'等待同步…':dailyInFlight?'同步中…':failedDaily.size?'同步失敗':'已同步';globalThis.salonCapacityNotice?.()}
   async function saveDaily(change=captureDaily()){if(!db)return;const key=change.date+':'+change.role;dailyInFlight++;dailyState();try{const ref=db.collection('salons').doc('default').collection('dates').doc(change.date);await db.runTransaction(async transaction=>{const snapshot=await transaction.get(ref),entries=normalizeStaffing(snapshot.data()?.staffing||{}).entries;for(const id of change.ids){delete entries[id];if(change.entries[id])entries[id]=change.entries[id]}transaction.set(ref,{staffing:{...(snapshot.data()?.staffing||{}),entries},staffingUpdatedAtMs:Date.now()},{mergeFields:['staffing','staffingUpdatedAtMs']})});failedDaily.delete(key)}catch(error){failedDaily.set(key,change);notify(change.date+' 每日異動儲存失敗：'+error.message,true)}finally{dailyInFlight--;dailyState()}}
   function flushDaily(){clearTimeout(dailySaveTimer);const change=dailyPending;dailyPending=null;if(change)return saveDaily(change)}
-  function queueDailySave(){clearTimeout(dailySaveTimer);dailyPending=captureDaily();$('dailySaveState').textContent='等待同步…';dailySaveTimer=setTimeout(flushDaily,350)}
+  function queueDailySave(){clearTimeout(dailySaveTimer);dailyPending=captureDaily();dailyState();dailySaveTimer=setTimeout(flushDaily,350)}
   async function clearDailyRole(){clearTimeout(dailySaveTimer);dailyPending=null;document.querySelectorAll('.dailyStaffRow').forEach(row=>{row.querySelector('.dailyStatus').value='inherit';row.querySelector('.dailyTime').value='';row.querySelector('.dailyNote').value='';syncDailyRow(row)});await saveDaily();renderDaily()}
   function setDate(date,force=false){
     if(!force&&date===currentDate&&dayUnsubscribe&&monthUnsubscribe)return;
