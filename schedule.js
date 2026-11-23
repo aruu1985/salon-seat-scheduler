@@ -4,7 +4,7 @@
   const STORE={normal:'正常營業',specialHours:'特殊營業時間',closed:'本店公休',halfDay:'半日營業',lateOpen:'延後營業',earlyClose:'提早打烊',extended:'延長營業',noBooking:'不可預約',training:'教育課程',meeting:'半日會議',specialOpen:'特殊營業日',spring:'春節店休'};
   const storeDrafts={month:{date:null,dirty:false},annual:{date:null,dirty:false}};
   const LEGACY={closed:'closed',spring:'spring',training:'training',meeting:'meeting',earlyClose:'earlyClose',noBooking:'noBooking',specialOpen:'specialOpen'};
-  let db=null,notify=()=>{},staff=[],month='',selectedDate='',currentDate='',draft={exceptions:{}},store={overrides:{}},legacyEvents=[],govDays={},monthUnsub=null,staffUnsub=null,storeUnsub=null,legacyUnsub=null,currentStoreUnsub=null,currentLegacyUnsub=null,annualStoreUnsub=null,annualLegacyUnsub=null,currentStoreData={overrides:{}},currentAnnualData={},currentGeneration=0,currentRevision=0,currentFailed=false,currentGovDays={},monthSaveTimer=null,storeSaveTimer=null,loadingMonth=false,monthRevision=0,monthDirty=false,annualMonth='',annualSelected=new Set(),personMode=null,displayFilter='all',screenshotMode=false,screenshotRestoreState=null,screenshotCancelled=false;
+  let db=null,notify=()=>{},staff=[],month='',selectedDate='',currentDate='',draft={exceptions:{}},store={overrides:{}},legacyEvents=[],govDays={},monthUnsub=null,staffUnsub=null,storeUnsub=null,legacyUnsub=null,currentStoreUnsub=null,currentLegacyUnsub=null,annualStoreUnsub=null,annualLegacyUnsub=null,currentStoreData={overrides:{}},currentAnnualData={},currentGeneration=0,currentRevision=0,currentFailed=false,currentGovDays={},monthSaveTimer=null,storeSaveTimer=null,loadingMonth=false,monthRevision=0,monthDirty=false,annualMonth='',annualSelected=new Set(),personMode=null,displayFilter='all',screenshotMode=false,screenshotRestoreState=null;
   const clone=value=>JSON.parse(JSON.stringify(value||{}));
   const esc=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const storeYears=new Map(),legacyYears=new Map(),govYears=new Map();let monthWatch=0,annualWatch=0,monthNavigation=false;
@@ -50,12 +50,12 @@
   function ensureScreenshotBackButton(){
     let button=$('scheduleScreenshotBack');
     if(button)return button;
-    button=document.createElement('button');button.id='scheduleScreenshotBack';button.className='scheduleScreenshotBack';button.type='button';button.textContent='← 返回';button.hidden=true;button.onclick=()=>{screenshotCancelled=true;restoreScreenshotState()};
+    button=document.createElement('button');button.id='scheduleScreenshotBack';button.className='scheduleScreenshotBack';button.type='button';button.textContent='← 返回';button.hidden=true;button.onclick=exitScreenshotMode;
     document.body.appendChild(button);
     return button;
   }
   function exitScreenshotMode(){
-    screenshotCancelled=true;
+    if(screenshotRestoreState)screenshotRestoreState.cancelled=true;
     restoreScreenshotState();
   }
   async function restoreScreenshotState(state=screenshotRestoreState){
@@ -64,37 +64,34 @@
     state.restored=true;
     screenshotMode=state.screenshotMode;personMode=state.personMode;displayFilter=state.displayFilter;month=state.month;selectedDate=state.selectedDate;
     const button=$('scheduleScreenshotMode');if(button)button.disabled=false;
-    screenshotRestoreState=null;renderAll();await nextPaint();const main=$('scheduleModal')?.querySelector('main');if(main)main.scrollTop=state.layoutScroll;window.scrollTo(state.scrollX,state.scrollY);
+    screenshotRestoreState=null;renderAll();await nextPaint();const main=$('scheduleModal')?.querySelector('main');if(main){main.scrollTop=state.layoutScroll;main.scrollLeft=state.mainLeft||0}const panel=$('scheduleModal')?.querySelector('.schedulePanel'),layout=$('scheduleModal')?.querySelector('.scheduleLayout');if(panel)panel.scrollTop=state.panelTop||0;if(layout)layout.scrollLeft=state.layoutLeft||0;window.scrollTo(state.scrollX,state.scrollY);
   }
   const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  function cssText(){
-    return [...document.styleSheets].map(sheet=>{try{return [...sheet.cssRules].map(rule=>rule.cssText).join('\n')}catch(error){return ''}}).join('\n');
-  }
   function downloadBlob(blob,filename){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200)}
-  function canvasBlob(canvas){return new Promise(resolve=>canvas.toBlob(resolve,'image/png',1))}
-  async function scheduleImageBlob(){
-    const modal=$('scheduleModal'),rect=modal.getBoundingClientRect(),width=Math.ceil(rect.width),height=Math.ceil(rect.height),html=`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${cssText()}</style>${modal.outerHTML}</div>`,svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${html}</foreignObject></svg>`,url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),image=new Image();
-    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url});
-    const canvas=document.createElement('canvas');canvas.width=width*2;canvas.height=height*2;const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.scale(2,2);context.drawImage(image,0,0);const blob=await canvasBlob(canvas);if(!blob)throw new Error('圖片產生失敗');return blob;
+  function scheduleImageSnapshot(){
+    const cells=[...$('monthCalendar').querySelectorAll('.monthDay[data-date]')],firstWeekday=new Date(month+'-01T12:00:00').getDay();
+    const days=cells.map(cell=>({day:Number(cell.dataset.date.slice(-2)),badges:[...cell.querySelectorAll('.calendarEvent')].map(el=>({text:el.innerText,color:getComputedStyle(el).color})),people:[...cell.querySelectorAll('.monthLeaveEntry')].map(el=>{const name=el.querySelector('.monthLeaveName');return {name:name.textContent,color:getComputedStyle(name).color,outline:name.classList.contains('monthLeaveNameOutlined')?'#513522':null,detail:[...el.querySelectorAll('small')].map(item=>item.textContent).join('／')}})}));
+    if(days.length!==monthDays(month))throw new Error('IncompleteCalendar');
+    return {title:$('scheduleAnnouncementTitle').textContent,firstWeekday,days};
   }
   async function captureScheduleScreenshot(){
-    if(personModeDirty()&&!confirmPersonDiscard())return;
-    const state={screenshotMode,personMode,displayFilter,month,selectedDate,scrollX:window.scrollX,scrollY:window.scrollY,layoutScroll:$('scheduleModal')?.querySelector('main')?.scrollTop||0};
+    if(screenshotRestoreState||personModeDirty()&&!confirmPersonDiscard())return;
+    const state={cancelled:false,screenshotMode,personMode,displayFilter,month,selectedDate,scrollX:window.scrollX,scrollY:window.scrollY,layoutScroll:$('scheduleModal')?.querySelector('main')?.scrollTop||0,mainLeft:$('scheduleModal')?.querySelector('main')?.scrollLeft||0,panelTop:$('scheduleModal')?.querySelector('.schedulePanel')?.scrollTop||0,layoutLeft:$('scheduleModal')?.querySelector('.scheduleLayout')?.scrollLeft||0};
     const filename=`${$('scheduleAnnouncementTitle')?.textContent||'休假表'}.png`,button=$('scheduleScreenshotMode');
-    screenshotRestoreState=state;screenshotCancelled=false;
+    screenshotRestoreState=state;let stage='prepare';
     try{
       personMode=null;screenshotMode=true;if(button)button.disabled=true;renderAll();await nextPaint();
-      await wait(900);
-      if(screenshotCancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
-      const blob=await scheduleImageBlob(),file=new File([blob],filename,{type:'image/png'});
-      if(screenshotCancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
-      if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:filename});
+      stage='render';
+      if(state.cancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
+      const blob=await SalonScheduleImage.render(scheduleImageSnapshot()),file=new File([blob],filename,{type:'image/png'});
+      if(state.cancelled)throw Object.assign(new Error('cancel'),{name:'AbortError'});
+      stage='share';
+      if(navigator.share&&navigator.canShare?.({files:[file]})){try{await navigator.share({files:[file],title:filename})}catch(error){if(error?.name!=='NotAllowedError')throw error;downloadBlob(blob,filename)}}
       else downloadBlob(blob,filename);
       notify('休假表圖片已產生。');
     }catch(error){
       if(error?.name==='AbortError')notify('已取消分享休假表。');
-      else{console.error('休假表截圖失敗',error);notify('休假表截圖失敗，畫面已恢復。',true)}
+      else{console.error('休假表截圖失敗',{stage,code:error?.name||'Error',reason:['CanvasUnavailable','InvalidCalendar','InvalidTitle','IncompleteCalendar','PNGTimeout','PNGEmpty'].includes(error?.message)?error.message:undefined});notify('休假表圖片未能產生或分享，畫面已恢復，請重試。',true)}
     }finally{
       await restoreScreenshotState(state);
     }
