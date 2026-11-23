@@ -9,6 +9,7 @@
     return `${year}年${Number(month)}月${Number(day)}日（${weekdays[date.getUTCDay()]}）`;
   }
   function updateDate(){const input=document.getElementById('dateInput'),label=dateLabel(input.value);document.getElementById('dateDisplay').textContent=label||'選擇日期';input.setAttribute('aria-label',label?'預約日期 '+label:'預約日期')}
-  function init(){const input=document.getElementById('dateInput');input.addEventListener('input',updateDate);input.closest('.dateControl').addEventListener('click',event=>{if(event.target===input&&typeof input.showPicker==='function'){try{input.showPicker()}catch(_){/* Safari versions without date showPicker keep their native input action. */}}});updateDate()}
+  function init(){const input=document.getElementById('dateInput'),trigger=document.getElementById('datePickerOpen'),picker=SalonBookingDatePicker.attach(input,trigger);input.addEventListener('input',updateDate);input.closest('.dateControl').addEventListener('click',event=>{event.preventDefault();picker.open()});updateDate()}
+
   window.SalonMainHeader={dateLabel,updateDate,init};
 })();

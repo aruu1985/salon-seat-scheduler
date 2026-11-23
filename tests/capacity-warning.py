@@ -2,7 +2,7 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json,os
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:19776/';DATE='2028-02-29';PREFIX=f'salons/default/dates/{DATE}/appointments/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:19776/');DATE='2028-02-29';PREFIX=f'salons/default/dates/{DATE}/appointments/'
 fixture={f'salons/default/staff/p{i}':{'code':str(i+2),'name':'合成人員','role':'designer' if i<3 else 'technician','active':True} for i in range(5)}
 fixture.update({PREFIX+f'a{i}':{'name':'合成客人','startTime':'10:00','start':4,'duration':2,'col':i+1,'designer':'x','services':['K剪']} for i in range(5)})
 with sync_playwright() as p:
