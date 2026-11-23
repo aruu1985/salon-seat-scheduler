@@ -18,15 +18,11 @@
   const monthDays=value=>new Date(Number(value.slice(0,4)),Number(value.slice(5,7)),0).getDate();
   const dateAt=day=>`${month}-${pad(day)}`;
   const dateIn=(value,day)=>`${value}-${pad(day)}`;
-  const entryAt=(date,id)=>draft.exceptions?.[date]?.[id]||{status:'normal',time:'',note:''};
+  const entryAt=(date,id)=>SalonStaffSchedule.resolve(personById(id),date,draft.exceptions?.[date]||{}).entry;
   const personById=id=>staff.find(person=>person.id===id);
   const personLeaveTitle=person=>`${person.code}${person.name?` ${person.name}`:''}`;
-  const isFixedOff=(person,date)=>person&&person.fixedOffDay!==null&&person.fixedOffDay!==undefined&&new Date(`${date}T12:00:00`).getDay()===Number(person.fixedOffDay);
-  function personIsOffOn(person,date,source=draft.exceptions){
-    const entry=source?.[date]?.[person.id];
-    if(entry)return entry.status==='off'||entry.status==='leave';
-    return isFixedOff(person,date);
-  }
+  const isFixedOff=(person,date)=>SalonStaffSchedule.fixed(person,date);
+  function personIsOffOn(person,date,source=draft.exceptions){return SalonStaffSchedule.off(person,date,source?.[date]||{})}
   function personSelectedKey(selected){return [...selected].sort().join('|')}
   const displayFilterLabel=()=>displayFilter==='designer'?'設計師':displayFilter==='technician'?'技術師':'';
   const staffMatchesDisplay=person=>displayFilter==='all'||person.role===displayFilter;
@@ -107,9 +103,9 @@
     return activeStaff().filter(person=>{
       if(!staffMatchesDisplay(person))return false;
       if(personMode?.active&&person.id===personMode.personId)return personMode.selected.has(date);
-      const entry=entries[person.id];
+      const entry=entryAt(date,person.id);
       return entry&&(isRestDisplayStatus(entry.status)||(!screenshotMode&&hasWorkTime(entry)));
-    }).map(person=>({person,entry:entries[person.id]||{status:'off',time:'',note:''}}));
+    }).map(person=>({person,entry:entryAt(date,person.id)}));
   }
   function govDisplayName(name){
     const text=String(name||'政府假日');
@@ -138,7 +134,7 @@
       const names=leavePeople.map(({person,entry})=>`<span class="monthLeaveEntry"><span class="monthLeaveName ${person.role==='technician'?'technician':'designer'}${person.role==='designer'&&person.name?.trim()==='品婷'?' monthLeaveNameOutlined':''}" style="--staff-color:${esc(staffColor(person))}">${esc(personLabel(person))}</span>${[leaveSubText(entry),...(!screenshotMode?workTimeLines(entry):[])].filter(Boolean).map(text=>`<small>${esc(text)}</small>`).join('')}</span>`).join('');
       const namesBlock=names?`<div class="monthLeaveNames leaveCount${nameSize}">${names}</div>`:'';
       const specialLines=!screenshotMode&&!personMode?activeStaff().filter(p=>staffMatchesDisplay(p)&&entries[p.id]&&entries[p.id].status!=='normal'&&!isRestDisplayStatus(entries[p.id].status)&&!hasWorkTime(entries[p.id])).map(p=>{const entry=entries[p.id];return `<span class="scheduleMark status-${esc(entry.status)}">${esc(roleLabel(p.role).slice(0,1))} ${esc(personLabel(p))} ${esc(statusShort(entry))}</span>`}).join(''):'';
-      const personLine=personMode&&personPick?'<span class="scheduleMark personLeaveMarker">✓ 本人休假</span>':'';
+      const personLine=personMode&&personPick?`<span class="scheduleMark personLeaveMarker">✓ ${isFixedOff(personById(personMode.personId),date)?'固定休日':'額外休假'}</span>`:'';
       cells.push(`<button class="monthDay ${date===selectedDate?'selected':''} ${personPick?'personLeavePicked':''} ${leavePeople.length?'hasLeaveNames':''}" data-date="${date}"><b>${day}</b>${dayBadges(date)}${personLine}${namesBlock}${specialLines}</button>`)
     }
     $('monthCalendar').innerHTML=cells.join('');document.querySelectorAll('.monthDay[data-date]').forEach(cell=>cell.onclick=()=>{if(screenshotMode)return;if(personMode)togglePersonDate(cell.dataset.date);else selectDate(cell.dataset.date)});
@@ -171,12 +167,19 @@
   async function selectMonth(value){if(monthNavigation||!confirmPersonDiscard())return;monthNavigation=true;try{clearTimeout(monthSaveTimer);if(monthDirty&&!(await saveMonth()))return;personMode=null;monthRevision++;monthDirty=false;month=value;const ticket=++monthWatch;$('scheduleMonth').value=value;selectedDate=`${value}-01`;if(monthUnsub)monthUnsub();if(storeUnsub)storeUnsub();if(legacyUnsub)legacyUnsub();if(!db){draft={exceptions:{}};store={overrides:{}};legacyEvents=[];renderAll();return}loadingMonth=true;$('monthSaveState').textContent='讀取中…';monthUnsub=scheduleRef(value).onSnapshot(doc=>{if(ticket!==monthWatch)return;if(personMode?.active)return;if(monthDirty&&!loadingMonth)return;draft=clone(doc.data()||{exceptions:{}});loadingMonth=false;$('monthSaveState').textContent='已同步';renderAll()},error=>{if(ticket!==monthWatch)return;loadingMonth=false;$('monthSaveState').textContent='讀取失敗';notify('月排班讀取失敗：'+error.message,true)});const year=value.slice(0,4);storeUnsub=storeRef(year).onSnapshot(doc=>{if(ticket!==monthWatch)return;store=clone(doc.data()||{overrides:{}});storeYears.set(year,store);renderAll()},error=>notify('本店店況讀取失敗：'+error.message,true));legacyUnsub=annualRef(year).onSnapshot(doc=>{if(ticket!==monthWatch)return;legacyEvents=doc.data()?.events||[];legacyYears.set(year,legacyEvents);renderAll()},error=>notify('舊年度行事曆讀取失敗：'+error.message,true));loadGovYear(Number(year))}finally{monthNavigation=false}}
   function renderAll(){renderRoster();renderCalendar();renderEditor();renderPersonBar();updateDisplayControls();if($('annualCalendarModal')?.classList.contains('open'))renderAnnualCalendar()}
   function shiftMonth(amount){const [year,mon]=month.split('-').map(Number),date=new Date(year,mon-1+amount,1);selectMonth(`${date.getFullYear()}-${pad(date.getMonth()+1)}`)}
-  function applyFixedOff(){for(const person of activeStaff().filter(p=>p.role==='designer'&&p.fixedOffDay!==null&&p.fixedOffDay!==undefined)){for(let day=1;day<=monthDays(month);day++){const date=dateAt(day),hasOverride=Object.prototype.hasOwnProperty.call(draft.exceptions?.[date]||{},person.id);if(new Date(`${date}T12:00:00`).getDay()===Number(person.fixedOffDay)&&!hasOverride)setEntry(date,person.id,{status:'off',time:'',note:'固定休'})}}renderAll();queueMonthSave();notify('固定休已套用並自動同步，可直接改任一天為上班。')}
-  async function copyPrevious(){if(!db)return;const targetMonth=month;const [year,mon]=month.split('-').map(Number),previous=new Date(year,mon-2,1),key=`${previous.getFullYear()}-${pad(previous.getMonth()+1)}`,doc=await scheduleRef(key).get(),source=doc.data()?.exceptions||{},next={};if(month!==targetMonth){notify('月份已變更，未套用上一個月排班。',true);return}for(const [date,entries] of Object.entries(source)){const day=Number(date.slice(-2));if(day<=monthDays(month))next[dateAt(day)]=clone(entries)}draft={exceptions:next};renderAll();queueMonthSave();notify(`已複製 ${key} 並自動同步。`)}
-  async function saveMonth(){if(!db||loadingMonth){if(!db)notify('Firebase 尚未連線。',true);return false}const state=$('monthSaveState'),revision=monthRevision,payload=clone(draft.exceptions||{});try{state.textContent='同步中…';await scheduleRef(month).set({exceptions:payload,updatedAtMs:Date.now()});if(revision===monthRevision){monthDirty=false;state.textContent='已同步'}return true}catch(error){state.textContent='同步失敗';notify('排班儲存失敗：'+error.message,true);return false}}
+  function applyFixedOff(){renderAll();notify('固定休已依人員設定自動套用，既有例外保持不變，不需重複儲存。')}
+  async function copyPrevious(){
+    if(!db||!confirmPersonDiscard())return;personMode=null;
+    const targetMonth=month,[year,mon]=month.split('-').map(Number),previous=new Date(year,mon-2,1),key=`${previous.getFullYear()}-${pad(previous.getMonth()+1)}`;
+    try{const doc=await scheduleRef(key).get();if(month!==targetMonth||personMode?.active){notify('編輯月份或模式已變更，未套用上一個月排班。',true);return}
+      const next=SalonStaffSchedule.copyMonth(key,month,doc.data()?.exceptions||{},draft.exceptions||{},staff),changed=JSON.stringify(next)!==JSON.stringify(draft.exceptions||{});
+      draft={...draft,exceptions:next};renderAll();if(changed)queueMonthSave();notify(`已補入 ${key} 可複製的例外；本月既有設定與固定休保持不變。`)
+    }catch(error){notify('上一個月排班讀取失敗，未修改本月：'+error.message,true)}
+  }
+  async function saveMonth(){if(!db||loadingMonth){if(!db)notify('Firebase 尚未連線。',true);return false}const state=$('monthSaveState'),revision=monthRevision,payload=clone(draft.exceptions||{});try{state.textContent='同步中…';await scheduleRef(month).set({exceptions:payload,updatedAtMs:Date.now()},{mergeFields:['exceptions','updatedAtMs']});if(revision===monthRevision){monthDirty=false;state.textContent='已同步'}return true}catch(error){state.textContent='同步失敗';notify('排班儲存失敗：'+error.message,true);return false}}
   function queueMonthSave(){clearTimeout(monthSaveTimer);monthRevision++;monthDirty=true;$('monthSaveState').textContent='等待同步…';monthSaveTimer=setTimeout(saveMonth,450)}
   function clearMonth(){if(!confirm(`確定清除 ${month} 全部例外排班？`))return;draft={exceptions:{}};renderAll();queueMonthSave()}
-  function exportMonth(){const rows=['日期,職類,編號,姓名,狀態,時間,備註'];for(const [date,entries] of Object.entries(draft.exceptions||{})){for(const [id,entry] of Object.entries(entries)){const p=staff.find(item=>item.id===id);rows.push([date,roleLabel(p?.role),p?.code||id,p?.name||'',STATUS[entry.status],entry.time||'',entry.note||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))}}const blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${month}-排班.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
+  function exportMonth(){const rows=['日期,職類,編號,姓名,狀態,時間,備註'];for(let day=1;day<=monthDays(month);day++){const date=dateAt(day),entries={...(draft.exceptions?.[date]||{})};for(const person of activeStaff())if(!Object.prototype.hasOwnProperty.call(entries,person.id)&&isFixedOff(person,date))entries[person.id]=entryAt(date,person.id);for(const [id,entry] of Object.entries(entries)){const p=staff.find(item=>item.id===id);rows.push([date,roleLabel(p?.role),p?.code||id,p?.name||'',STATUS[entry.status],entry.time||'',entry.note||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))}}const blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${month}-排班.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
   function quickStatus(status){const picked=[...document.querySelectorAll('.dayScheduleRow')].filter(row=>row.querySelector('.schedulePick').checked);if(!picked.length){notify('請先勾選要快速設定的人員。',true);return}for(const row of picked){row.querySelector('.scheduleStatus').value=status;updateRow(row)}renderEditor()}
   function nextDay(){if(!selectedDate)return;const date=new Date(`${selectedDate}T12:00:00`);date.setDate(date.getDate()+1);const next=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;if(next.slice(0,7)===month)selectDate(next)}
   function open(){const current=$('dateInput')?.value?.slice(0,7)||new Date().toISOString().slice(0,7);$('scheduleModal').classList.add('open');selectMonth(current)}
@@ -208,13 +211,15 @@
     if(!personMode?.active)return;
     const person=personById(personMode.personId);
     $('personLeaveTitle').textContent=person?`${personLeaveTitle(person)}｜${month}休假`:'個人排休';
-    $('personLeaveCount').textContent=`已選 ${personMode.selected.size} 天`;
+    const fixedCount=[...personMode.selected].filter(date=>isFixedOff(person,date)).length;
+    $('personLeaveCount').textContent=`已選 ${personMode.selected.size} 天（固定休日 ${fixedCount} 天／額外 ${personMode.selected.size-fixedCount} 天）`;
     $('personLeaveHint').textContent=personModeDirty()?'尚未儲存：點日期可繼續調整。':'目前沒有未儲存修改。';
   }
   function cancelPersonMode(){if(!personMode?.active)return;draft={exceptions:clone(personMode.base||{})};personMode=null;$('monthSaveState').textContent='已取消個人草稿';renderAll();notify('已取消個人排休修改，正式資料未變更。')}
   async function savePersonMode(){
     if(!personMode?.active)return;
     const person=personById(personMode.personId);if(!person)return;
+    if(!personModeDirty()){personMode=null;renderAll();$('monthSaveState').textContent=monthDirty?'等待同步…':'已同步';notify('休假未變更，固定休已自動計入。');return}
     const next=clone(personMode.base||{}),selected=personMode.selected;
     for(let day=1;day<=monthDays(month);day++){
       const date=dateAt(day),picked=selected.has(date),fixed=isFixedOff(person,date);

@@ -36,17 +36,17 @@ with sync_playwright() as p:
   page.locator('#nextDay').click();page.wait_for_timeout(90);assert page.locator('#dateInput').input_value()=='2028-02-29';assert '（二）' in page.locator('#dateDisplay').inner_text();assert starts(monthPath)==m;assert starts(yearPath)==y
   assert '2' in page.locator('#todayDesigners').inner_text().split('、');assert '3' not in page.locator('#todayDesigners').inner_text().split('、');assert '21:00' in page.locator('#todayEvents').inner_text()
   page.locator('#nextDay').click();page.wait_for_timeout(60);assert page.locator('#dateInput').input_value()=='2028-03-01';assert active(monthPath)==0
-  choose('2028-03-07');assert '2' in page.locator('#todayDesigners').inner_text().split('、') # Existing design applies fixed leave only after explicit month action.
+  choose('2028-03-07');assert '2' not in page.locator('#todayDesigners').inner_text().split('、') # Fixed rest now applies automatically without writing the month.
   choose('2028-12-31');page.locator('#nextDay').click();page.wait_for_timeout(80);assert page.locator('#dateInput').input_value()=='2029-01-01';assert '店休' in page.locator('#todayEvents').inner_text();assert active('salons/default/dates/2028-12-31/appointments')==0
   # Two views of different years must not share business-state data.
-  choose('2028-02-29');page.evaluate('SalonSchedule.open()');page.wait_for_selector('#scheduleModal.open');page.wait_for_timeout(70);page.locator('#applyFixedOff').click();page.wait_for_function('testWrites.length===1');assert page.evaluate("testDocs['salons/default/schedules/2028-02'].exceptions['2028-02-08'].designer2.status")=='off';assert '2' in page.locator('#todayDesigners').inner_text().split('、');assert page.locator('[data-schedule-date="2028-02-29"]').count() or page.locator('#monthCalendar').inner_text()
+  choose('2028-02-29');page.evaluate('SalonSchedule.open()');page.wait_for_selector('#scheduleModal.open');page.wait_for_timeout(70);page.locator('#applyFixedOff').click();page.wait_for_timeout(500);assert page.evaluate('testWrites.length')==0;assert '合成2' in page.locator('#monthCalendar [data-date="2028-02-08"]').inner_text();assert '2' in page.locator('#todayDesigners').inner_text().split('、');assert page.locator('[data-schedule-date="2028-02-29"]').count() or page.locator('#monthCalendar').inner_text()
   page.evaluate('SalonSchedule.openAnnual()');page.locator('#annualYear').fill('2029');page.locator('#annualYear').press('Tab');page.wait_for_timeout(90)
   assert page.locator('[data-annual-date="2029-01-01"]').count()==1
   page.evaluate("testEmit('salons/default/storeCalendar/2028')");page.wait_for_timeout(60)
   assert '合成2029店休' in page.locator('[data-annual-date="2029-01-01"]').inner_text();assert '合成2028延長' not in page.locator('#annualMonthCalendar').inner_text()
   # Server-only concurrent edit must survive saving one other date.
   page.evaluate("testDocs['salons/default/storeCalendar/2029'].overrides['2029-01-03']={date:'2029-01-03',status:'closed',title:'另一裝置更新'}")
-  page.locator('[data-annual-date="2029-01-01"]').click();page.locator('#annualStoreStatus').select_option('closed');page.locator('#annualStoreTitle').fill('合成指定2029店休');page.locator('#annualStoreTitle').dispatch_event('input');page.locator('#saveAnnualStore').click();page.wait_for_function('testWrites.length===2')
+  page.locator('[data-annual-date="2029-01-01"]').click();page.locator('#annualStoreStatus').select_option('closed');page.locator('#annualStoreTitle').fill('合成指定2029店休');page.locator('#annualStoreTitle').dispatch_event('input');page.locator('#saveAnnualStore').click();page.wait_for_function('testWrites.length===1')
   data=page.evaluate("testDocs['salons/default/storeCalendar/2029'].overrides");assert data['2029-01-03']['title']=='另一裝置更新';assert data['2029-01-02']['title']=='保留2029另一天';assert '2028-02-29' not in data
   a=active('salons/default/storeCalendar/2029');page.locator('#annualClose').click();assert active('salons/default/storeCalendar/2029')==a-1
   a=active('salons/default/schedules/2028-02');page.locator('#scheduleClose').click();assert active('salons/default/schedules/2028-02')==a-1

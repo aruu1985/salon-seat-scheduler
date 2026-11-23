@@ -20,7 +20,7 @@
     for(const id of value.leaveIds||[])entries[id]={working:false,status:'leave',time:'',note:value.notes?.[id]||''};
     return {entries};
   }
-  function entryFor(id){const daily=staffing.entries||{},scheduled=monthly.exceptions?.[currentDate]||{};if(Object.prototype.hasOwnProperty.call(daily,id))return daily[id];if(Object.prototype.hasOwnProperty.call(scheduled,id)){const entry=scheduled[id];return {...entry,working:!['off','leave'].includes(entry.status)}}return {working:true,status:'normal',time:'',note:''}}
+  function entryFor(id){const person=staff.find(p=>p.id===id)||{id},resolved=SalonStaffSchedule.resolve(person,currentDate,monthly.exceptions?.[currentDate]||{},staffing.entries||{});return resolved.source==='daily'?resolved.entry:{...resolved.entry,working:!['off','leave'].includes(resolved.entry.status)}}
   function dailyEntryFor(id){return Object.prototype.hasOwnProperty.call(staffing.entries||{},id)?staffing.entries[id]:null}
 
   function renderMaster(){
@@ -103,7 +103,7 @@
   function capacityData(date){
     const issues=staff.length?[]:['尚無服務人員主檔，無法確認人數'],ids=new Set(staff.map(p=>p.id));
     for(const id of new Set([...Object.keys(staffing.entries||{}),...Object.keys(monthly.exceptions?.[currentDate]||{})]))if(!ids.has(id))issues.push('排班含未能對應人員主檔的紀錄');
-    const people=staff.map(p=>{let entry;try{entry=entryFor(p.id);const explicit=Object.prototype.hasOwnProperty.call(staffing.entries||{},p.id)||Object.prototype.hasOwnProperty.call(monthly.exceptions?.[currentDate]||{},p.id);if(!explicit&&p.fixedOffDay!==null&&p.fixedOffDay!==undefined&&Number(p.fixedOffDay)===new Date(currentDate+'T12:00:00').getDay())entry={status:'fixed-off-unconfirmed'}}catch{entry={}}return {...p,entry}});
+    const people=staff.map(p=>{let entry;try{entry=entryFor(p.id)}catch{entry={}}return {...p,entry}});
     return {people,complete:date===currentDate&&!listenersFailed&&!dailyPending&&!dailyInFlight&&![...failedDaily.keys()].some(key=>key.startsWith(date+':'))&&Object.values(capacityReady).every(Boolean),issues:[...new Set(issues)]};
   }
   window.SalonStaff={capacityData,init,connect,setDate,applyRefresh,revision:()=>liveRevision,open,openDaily,colorForCode,labelForCode,colorForPerson:staffColor};

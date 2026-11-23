@@ -28,8 +28,8 @@ with sync_playwright() as p:
   # A time move adds load only to 10:30–11:00, with the original excluded.
   edit(identifier);page.locator('#start').select_option('10:30');page.locator('#saveBtn').click();page.locator('#capacityModal.open').wait_for();text=page.locator('.capacityBody').inner_text();assert '10:30～11:00' in text and '同時段預約：6 位' in text and '7 位' not in text
   writes=page.evaluate('testWrites.length');page.evaluate("path=>{testDocs[path].note='另一裝置新版';testRevision++;testEmit(path)}",PREFIX+identifier);page.locator('#capacityProceed').click();page.wait_for_timeout(100);assert page.locator('#modal.open').count()==1;assert page.evaluate('testWrites.length')==writes;assert page.evaluate('path=>testDocs[path].note',PREFIX+identifier)=='另一裝置新版';page.locator('#cancelBtn').click()
-  # Eight confirmed + an uncertain fixed-off employee must not interrupt an ordinary booking.
-  data=staff(8);data['salons/default/staff/unknown']={'code':'99','role':'designer','active':True,'fixedOffDay':2};reset(data);new('合成一般預約');page.locator('#saveBtn').click();saved();assert '人力待確認' in page.locator('#capacityDataNotice').inner_text()
+  # Eight confirmed + an uncertain half-day employee must not interrupt an ordinary booking.
+  data=staff(8);data['salons/default/staff/unknown']={'code':'99','role':'designer','active':True};data[f'salons/default/dates/{DATE}']={'staffing':{'entries':{'unknown':{'working':True,'status':'afternoon'}}}};reset(data);new('合成一般預約');page.locator('#saveBtn').click();saved();assert '人力待確認' in page.locator('#capacityDataNotice').inner_text()
   # Eight staff still use six main seats as the general arrangement baseline.
   reset(staff(8)|rows(6));new('合成第七位');page.locator('#saveBtn').click();page.locator('#capacityModal.open').wait_for();text=page.locator('.capacityBody').inner_text();assert '一般安排基準：6 位' in text and '目前確認在班：8 位' in text;page.locator('#capacityBack').click();page.locator('#cancelBtn').click()
   # Known three plus unknown: possible extra intake, never a claim of definite shortage.
