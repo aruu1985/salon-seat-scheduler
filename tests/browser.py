@@ -1,13 +1,13 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-import json
+import json,os
 ROOT=Path(__file__).resolve().parents[1]
-BASE='http://127.0.0.1:8765/'
+BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  for width,height in [(390,844),(820,1180),(1440,1000)]:
   context=browser.new_context(viewport={'width':width,'height':height},has_touch=width<1000,service_workers='block')
-  context.add_init_script(path=str(ROOT/'tests/firebase-mock.js'))
+  context.add_init_script((ROOT/'tests/firebase-mock.js').read_text()+";for(let i=0;i<5;i++)testDocs['salons/default/staff/synthetic'+i]={role:'designer',code:String(100+i),active:true};")
   context.route('**/*',lambda route:route.continue_() if route.request.url.startswith(BASE) else route.fulfill(status=200,body=''))
   page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(BASE);page.wait_for_function("document.querySelector('#syncStatus').textContent.includes('已同步')")
   date=page.locator('#dateInput').input_value();year=date[:4]

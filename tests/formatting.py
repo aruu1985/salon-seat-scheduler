@@ -4,6 +4,7 @@ from playwright.sync_api import sync_playwright
 import json
 ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 CUSTOM={'salons/default/services/fringe':{'name':'K瀏','active':True},'salons/default/services/perm-fringe':{'name':'燙瀏海','active':True},'salons/default/services/gel':{'name':'凝膠指甲','active':True}}
+CUSTOM.update({f'salons/default/staff/d{code}':{'role':'designer','code':str(code),'active':True} for code in [2,3,5,6,7]})
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  for width,height in [(390,844),(820,1180),(1440,1000)]:

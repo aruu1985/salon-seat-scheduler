@@ -2,7 +2,7 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import os,json
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:18776/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:18776/')
 extras='''
 const oldRef=ref;ref=(p='',d=false)=>{const r=oldRef(p,d);Object.defineProperty(r,'parent',{get:()=>ref(p.split('/').slice(0,-1).join('/'),!d)});r.add=async data=>{const target=ref(p+'/'+crypto.randomUUID(),true);await target.set(data);return target};return r};
 const oldSnap=snapshot;snapshot=(p,d)=>{const s=oldSnap(p,d);if(d)s.ref=ref(p,true);else s.docs.forEach(doc=>doc.ref=ref(p+'/'+doc.id,true));return s};
@@ -11,6 +11,7 @@ firebase.firestore().collectionGroup=name=>({get:async()=>({docs:Object.keys(tes
 firebase.firestore().batch=()=>{const ops=[];return {set:(r,d)=>ops.push(()=>r.set(d)),delete:r=>ops.push(()=>r.delete()),commit:async()=>{for(const op of ops)await op()}}};
 '''
 fixture={'salons/default/staff/d6':{'role':'designer','code':'6','name':'合成設計師','active':True},'salons/default/storeCalendar/2029':{'overrides':{'2029-01-02':{'status':'extended','startTime':'10:00','endTime':'21:00'}}},'salons/default/trash/expired-synthetic':{'originalDate':'2020-01-01','originalId':'old','data':{'name':'合成歷史垃圾桶'},'expiresAtMs':1}}
+fixture.update({f'salons/default/staff/t{i}':{'role':'technician','code':str(21+i),'active':True} for i in range(4)})
 engine=os.environ.get('HEADER_ENGINE','chromium')
 with sync_playwright() as p:
  browser=p.webkit.launch(headless=True) if engine=='webkit' else p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])

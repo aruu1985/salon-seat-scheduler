@@ -4,7 +4,7 @@
   const STATUS={normal:'正常上班',off:'休假',late:'晚到／晚上班',early:'提早下班',afternoon:'下半天',leave:'請假'};
   const COLORS=[['#f6a24c','橘色'],['#fff176','黃色'],['#ff75ad','桃紅色'],['#8ee072','綠色'],['#7dc8ff','藍色'],['#c6a4ff','紫色'],['#81d8d0','蒂芬妮藍']];
   const LEGACY_COLORS={'2':'#f6a24c','3':'#fff176','5':'#ff75ad','6':'#8ee072','7':'#7dc8ff','13':'#81d8d0'};
-  let db=null,currentDate='',currentRole='designer',staff=[],staffing={entries:{}},monthly={exceptions:{}},notify=()=>{},staffUnsubscribe=null,dayUnsubscribe=null,monthUnsubscribe=null,dailySaveTimer=null,dateGeneration=0,listenersFailed=false,liveRevision=0,watchedMonth='',monthGeneration=0,dailyPending=null,dailyInFlight=0;const failedDaily=new Map();
+  let db=null,currentDate='',currentRole='designer',staff=[],staffing={entries:{}},monthly={exceptions:{}},notify=()=>{},staffUnsubscribe=null,dayUnsubscribe=null,monthUnsubscribe=null,dailySaveTimer=null,dateGeneration=0,listenersFailed=false,liveRevision=0,watchedMonth='',monthGeneration=0,dailyPending=null,dailyInFlight=0;let capacityReady={staff:false,day:false,month:false};const verified=s=>s.metadata?.fromCache!==true&&s.metadata?.hasPendingWrites!==true;const failedDaily=new Map();
 
   function staffRef(){return db.collection('salons').doc('default').collection('staff')}
   function dayRef(){return db.collection('salons').doc('default').collection('dates').doc(currentDate)}
@@ -85,14 +85,14 @@
   function setDate(date,force=false){
     if(!force&&date===currentDate&&dayUnsubscribe&&monthUnsubscribe)return;
     flushDaily();const generation=++dateGeneration,monthKey=date.slice(0,7),changeMonth=force||monthKey!==watchedMonth||!monthUnsubscribe;
-    currentDate=date;if(dayUnsubscribe)dayUnsubscribe();dayUnsubscribe=null;staffing={entries:{}};
-    if(changeMonth){if(monthUnsubscribe)monthUnsubscribe();monthUnsubscribe=null;monthly={exceptions:{}};watchedMonth=monthKey;monthGeneration++}
+    capacityReady.day=false;currentDate=date;if(dayUnsubscribe)dayUnsubscribe();dayUnsubscribe=null;staffing={entries:{}};
+    if(changeMonth){capacityReady.month=false;if(monthUnsubscribe)monthUnsubscribe();monthUnsubscribe=null;monthly={exceptions:{}};watchedMonth=monthKey;monthGeneration++}
     renderAll();if(!db||!date)return;
-    dayUnsubscribe=dayRef().onSnapshot(doc=>{if(generation!==dateGeneration)return;liveRevision++;staffing=normalizeStaffing(doc.data()?.staffing||{});if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(generation!==dateGeneration)return;listenersFailed=true;notify('每日人員同步失敗：'+error.message,true)});
-    if(changeMonth){const ticket=monthGeneration;monthUnsubscribe=db.collection('salons').doc('default').collection('schedules').doc(monthKey).onSnapshot(doc=>{if(ticket!==monthGeneration)return;liveRevision++;monthly=doc.data()||{exceptions:{}};if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(ticket!==monthGeneration)return;listenersFailed=true;notify('月底排班同步失敗：'+error.message,true)})}
+    dayUnsubscribe=dayRef().onSnapshot({includeMetadataChanges:true},doc=>{if(generation!==dateGeneration)return;liveRevision++;capacityReady.day=verified(doc);staffing=normalizeStaffing(doc.data()?.staffing||{});if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(generation!==dateGeneration)return;listenersFailed=true;notify('每日人員同步失敗：'+error.message,true)});
+    if(changeMonth){const ticket=monthGeneration;monthUnsubscribe=db.collection('salons').doc('default').collection('schedules').doc(monthKey).onSnapshot({includeMetadataChanges:true},doc=>{if(ticket!==monthGeneration)return;liveRevision++;capacityReady.month=verified(doc);monthly=doc.data()||{exceptions:{}};if(!$('dailyStaffModal').classList.contains('open'))renderDaily();renderDashboard()},error=>{if(ticket!==monthGeneration)return;listenersFailed=true;notify('月底排班同步失敗：'+error.message,true)})}
   }
-  function applyRefresh(date,value,revision){if(date!==currentDate||(revision!==undefined&&revision!==liveRevision))return;staff=value.staff;staffing=normalizeStaffing(value.daily.staffing||{});monthly=value.monthly;renderAll();if(listenersFailed){listenersFailed=false;connect(db,date);setDate(date,true)}}
-  function connect(database,date){db=database;setDate(date);if(staffUnsubscribe)staffUnsubscribe();staffUnsubscribe=staffRef().onSnapshot(snapshot=>{liveRevision++;staff=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderAll()},error=>{listenersFailed=true;notify('人員資料同步失敗：'+error.message,true)})}
+  function applyRefresh(date,value,revision){if(date!==currentDate||(revision!==undefined&&revision!==liveRevision))return;capacityReady={staff:true,day:true,month:true};staff=value.staff;staffing=normalizeStaffing(value.daily.staffing||{});monthly=value.monthly;renderAll();if(listenersFailed){listenersFailed=false;connect(db,date);setDate(date,true)}}
+  function connect(database,date){capacityReady.staff=false;db=database;setDate(date);if(staffUnsubscribe)staffUnsubscribe();staffUnsubscribe=staffRef().onSnapshot({includeMetadataChanges:true},snapshot=>{liveRevision++;capacityReady.staff=verified(snapshot);staff=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderAll()},error=>{listenersFailed=true;notify('人員資料同步失敗：'+error.message,true)})}
   function open(){$('peopleModal').classList.add('open');renderMaster()}
   function openDaily(role){flushDaily();currentRole=role;$('dailyStaffModal').classList.add('open');renderDaily()}
   function bindBoard(id,role){const board=$(id);board.onclick=()=>openDaily(role);board.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openDaily(role)}}}
@@ -100,5 +100,11 @@
   function colorForCode(code){if(String(code)==='x')return '#c6a4ff';const person=staff.find(item=>item.role==='designer'&&(String(item.code)===String(code)||(item.previousCodes||[]).map(String).includes(String(code))));return staffColor(person||{code})}
   function labelForCode(value,role){const code=String(value||'').trim();if(!code||code==='x')return '不指定';const person=staff.find(item=>(!role||item.role===role)&&(String(item.code)===code||(item.previousCodes||[]).map(String).includes(code)||item.name===code));return person?`${person.name===code?person.code:code}${person.name?' '+person.name:'（未提供姓名）'}`:code}
   function init(options={}){notify=options.notify||notify;$('addStaffBtn').onclick=addStaff;$('newStaffRole').onchange=syncNewRoleFields;syncNewRoleFields();$('peopleClose').onclick=()=>$('peopleModal').classList.remove('open');$('peopleModal').onclick=event=>{if(event.target===$('peopleModal'))$('peopleModal').classList.remove('open')};$('saveDailyStaffBtn').onclick=()=>{flushDaily()||saveDaily()};$('clearDailyStaffBtn').onclick=clearDailyRole;$('dailyStaffClose').onclick=$('dailyStaffCancel').onclick=()=>$('dailyStaffModal').classList.remove('open');$('dailyStaffModal').onclick=event=>{if(event.target===$('dailyStaffModal'))$('dailyStaffModal').classList.remove('open')};bindBoard('designerBoard','designer');bindBoard('technicianBoard','technician')}
-  window.SalonStaff={init,connect,setDate,applyRefresh,revision:()=>liveRevision,open,openDaily,colorForCode,labelForCode,colorForPerson:staffColor};
+  function capacityData(date){
+    const issues=staff.length?[]:['尚無服務人員主檔，無法確認人數'],ids=new Set(staff.map(p=>p.id));
+    for(const id of new Set([...Object.keys(staffing.entries||{}),...Object.keys(monthly.exceptions?.[currentDate]||{})]))if(!ids.has(id))issues.push('排班含未能對應人員主檔的紀錄');
+    const people=staff.map(p=>{let entry;try{entry=entryFor(p.id);const explicit=Object.prototype.hasOwnProperty.call(staffing.entries||{},p.id)||Object.prototype.hasOwnProperty.call(monthly.exceptions?.[currentDate]||{},p.id);if(!explicit&&p.fixedOffDay!==null&&p.fixedOffDay!==undefined&&Number(p.fixedOffDay)===new Date(currentDate+'T12:00:00').getDay())entry={status:'fixed-off-unconfirmed'}}catch{entry={}}return {...p,entry}});
+    return {people,complete:date===currentDate&&!listenersFailed&&!dailyPending&&!dailyInFlight&&![...failedDaily.keys()].some(key=>key.startsWith(date+':'))&&Object.values(capacityReady).every(Boolean),issues:[...new Set(issues)]};
+  }
+  window.SalonStaff={capacityData,init,connect,setDate,applyRefresh,revision:()=>liveRevision,open,openDaily,colorForCode,labelForCode,colorForPerson:staffColor};
 })();

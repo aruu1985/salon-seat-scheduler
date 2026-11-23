@@ -2,7 +2,7 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import os,json
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:8765/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:8765/')
 engine=os.environ.get('SALON_TEST_ENGINE','chromium')
 STAFF={f'salons/default/staff/d{code}':{'code':code,'name':name,'role':'designer','active':True,'color':color} for code,name,color in [('2','婉婷','#f6a24c'),('3','品婷','#fff176'),('5','左左','#ff75ad'),('6','Sam','#8ee072'),('7','文文','#7dc8ff')]}
 STAFF['salons/default/staff/t21']={'code':'21','name':'測試技術師','role':'technician','active':True}

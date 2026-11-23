@@ -3,7 +3,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json,os,re
 from datetime import datetime,timezone
-ROOT=Path(__file__).resolve().parents[1];BASE='http://127.0.0.1:18776/'
+ROOT=Path(__file__).resolve().parents[1];BASE=os.environ.get('SALON_TEST_BASE','http://127.0.0.1:18776/')
 fixtures={}
 for role,codes in [('designer',['2','3','5','6','7']),('technician',['21','22','23','36'])]:
  for code in codes:fixtures[f'salons/default/staff/{role}{code}']={'role':role,'code':code,'name':'合成'+code,'active':True,'fixedOffDay':2 if code=='2' else None}

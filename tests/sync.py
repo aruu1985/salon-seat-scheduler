@@ -21,7 +21,7 @@ with sync_playwright() as p:
      if peer!=source:
       peer.evaluate("([path,data])=>{if(data===null)delete testDocs[path];else testDocs[path]=data;testRevision++;testEmit(path)}",[path,data])
   for n in range(2):
-   ctx=browser.new_context(viewport={'width':width,'height':height},has_touch=width<1000,service_workers='block');contexts.append(ctx);ctx.add_init_script(path=str(ROOT/'tests/firebase-mock.js'));ctx.route('**/*',lambda r:r.continue_() if r.request.url.startswith(BASE) else r.fulfill(status=200,body=''));ctx.expose_binding('sharedWrite',receive)
+   ctx=browser.new_context(viewport={'width':width,'height':height},has_touch=width<1000,service_workers='block');contexts.append(ctx);ctx.add_init_script((ROOT/'tests/firebase-mock.js').read_text()+";for(let i=0;i<5;i++)testDocs['salons/default/staff/synthetic'+i]={role:'designer',code:String(100+i),active:true};");ctx.route('**/*',lambda r:r.continue_() if r.request.url.startswith(BASE) else r.fulfill(status=200,body=''));ctx.expose_binding('sharedWrite',receive)
    page=ctx.new_page();pages.append(page);page.on('pageerror',lambda e:errors.append(str(e)));page.goto(BASE);page.wait_for_function("document.querySelector('#syncStatus').textContent.includes('已同步')")
   a,b=pages
   def choose(page,value):
@@ -43,7 +43,7 @@ with sync_playwright() as p:
   choose(a,'2026-01-01');a.evaluate("localStorage.setItem('salon-v06-2026-01-01',JSON.stringify([{id:'obsolete',name:'舊資料',start:4,duration:2,col:1}]))");a.evaluate("testEmit('salons/default/dates/2026-01-01/appointments')");assert a.locator('.appt').count()==0;assert a.evaluate('testWrites.length')==0
   choose(a,TODAY);choose(b,TODAY)
   # Clear only test fixture records, never a production backend.
-  for page in pages:page.evaluate("()=>{testDocs={};Object.keys(testListeners).forEach(testEmit)}")
+  for page in pages:page.evaluate("()=>{testDocs=Object.fromEntries(Object.entries(testDocs).filter(([p])=>p.includes('/staff/')));Object.keys(testListeners).forEach(testEmit)}")
   a.locator('#addBtn').click();a.locator('#name').fill('跨裝置新預約');a.locator('#saveBtn').click();a.wait_for_function("!document.getElementById('modal').classList.contains('open')");deliver();b.wait_for_selector('.appt');assert b.locator('.appt').inner_text().find('跨裝置新預約')>=0
   identifier=a.locator('.appt').get_attribute('data-id');path=f'salons/default/dates/{TODAY}/appointments/{identifier}'
   a.locator('.appt').click();a.locator('#actionEdit').click();a.locator('#name').fill('跨裝置修改');a.locator('#saveBtn').click();a.wait_for_function("!document.getElementById('modal').classList.contains('open')");deliver();b.wait_for_function("document.querySelector('.appt').textContent.includes('跨裝置修改')")
