@@ -1,0 +1,19 @@
+{
+  "version": "0.12.16-compat.3",
+  "build": "845ee6242c168e1e",
+  "scope": "compatibility-frontend-only",
+  "sourceBranch": "prepare/arrival-compatibility",
+  "sourceCommit": "d0a1cd8de04fe422ef5d56ec7a2cb6a23c0c520f",
+  "baseMainCommit": "6fe7abcc1a3137f94446a728449665315b66f8ac",
+  "arrivalWritesEnabled": false,
+  "counterLoginEnabled": false,
+  "legacyVersionFrozen": {
+    "version": "0.12.15",
+    "build": "6bf9a689e1d8ec37"
+  },
+  "artifactManifestSha256": "b8b28481e0487d20f4d53e17c1916f077406a3b93695837c196b744c82a509d3",
+  "publicationMethod": "Overlay verified static artifact on main; preserve all legacy assets. Development source stays on the approved candidate branch.",
+  "firestoreChanges": false,
+  "authenticationConfigurationChanges": false,
+  "billingChanges": false
+}

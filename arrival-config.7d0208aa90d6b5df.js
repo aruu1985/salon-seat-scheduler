@@ -1,0 +1,1 @@
+window.SALON_ARRIVAL_CONFIG=Object.freeze({phase:"compatibility",enabled:true,writesEnabled:false});

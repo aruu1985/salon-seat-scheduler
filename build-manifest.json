@@ -1,0 +1,149 @@
+{
+  "version": "0.12.16-compat.3",
+  "build": "845ee6242c168e1e",
+  "profile": "compatibility",
+  "projectId": "salon-seat-scheduler",
+  "assets": {
+    "styles.css": {
+      "file": "styles.62c923e2403cd40c.css",
+      "sha256": "62c923e2403cd40c99cac71632c03a8892cdf0afca1959b5ee3c75768f120b1c"
+    },
+    "firebase-config.js": {
+      "file": "firebase-config.e68f55e267bbe996.js",
+      "sha256": "e68f55e267bbe996eb4aafe951ebfda91adb4ab1eb2f98d02a408789863431aa"
+    },
+    "catalog.js": {
+      "file": "catalog.6ac38624ee14a1cd.js",
+      "sha256": "6ac38624ee14a1cd7ea8f09518ee2019f19ab3c9d1dac720be1d1c17b423af34"
+    },
+    "appointment-format.js": {
+      "file": "appointment-format.2c68a1ea43e51e82.js",
+      "sha256": "2c68a1ea43e51e82a1a9e7cb505625d4080b87a52c9168fe9844416685668bd1"
+    },
+    "card-layout.js": {
+      "file": "card-layout.941278f2e916f0ad.js",
+      "sha256": "941278f2e916f0add4fe8b6739b9caa98ba47a19e13b7d6006172fc4ddc66238"
+    },
+    "appointment-details.js": {
+      "file": "appointment-details.5ea1c3b6fe460280.js",
+      "sha256": "5ea1c3b6fe4602805be5aa33dcd7c7c734dcfda5c606321c1e27bf5861ae0708"
+    },
+    "booking-date-picker.js": {
+      "file": "booking-date-picker.8c8f9471b2b976c5.js",
+      "sha256": "8c8f9471b2b976c5768d20327ea0848a7c106e6955db0add55463beb85854398"
+    },
+    "main-header.js": {
+      "file": "main-header.8af77f52120e7110.js",
+      "sha256": "8af77f52120e7110c55439c5a1e5be109b3a9ef988eec381b33e128d62231e24"
+    },
+    "staff-schedule.js": {
+      "file": "staff-schedule.ab7f37b50df8194a.js",
+      "sha256": "ab7f37b50df8194af4fa30f23e8472effc594fe83f50f9a1e538b5917472d0bd"
+    },
+    "staff.js": {
+      "file": "staff.939facc5acf0912c.js",
+      "sha256": "939facc5acf0912c2dce36242604215b7fc391c2a61ce0caa804ec2b473ee581"
+    },
+    "service-capacity.js": {
+      "file": "service-capacity.57630d9471db79d3.js",
+      "sha256": "57630d9471db79d32ba6d57e2cd71072b60d3d3439fb4605970afe6945e84df8"
+    },
+    "capacity-prompt.js": {
+      "file": "capacity-prompt.6c8e9108f5fb3365.js",
+      "sha256": "6c8e9108f5fb336517e72cfd28b8cc555ba2cc261520e86fbe84f6e70ee6f9a0"
+    },
+    "gov-calendar.js": {
+      "file": "gov-calendar.1fdfd09bad32998e.js",
+      "sha256": "1fdfd09bad32998e0c00d6ddccac14bd9cc02f11863da08bfe593cdc683b9461"
+    },
+    "schedule-image.js": {
+      "file": "schedule-image.25d73908879e56a1.js",
+      "sha256": "25d73908879e56a1159ec0b828750682ebb6a1723475754bcddb8b4c2c891500"
+    },
+    "schedule.js": {
+      "file": "schedule.66123383f2bf54e6.js",
+      "sha256": "66123383f2bf54e6ec6a9e6dbe7aee899b10bbfbaae64853187d05b9cf80fdbb"
+    },
+    "settings.js": {
+      "file": "settings.83c97bbdb8293b9e.js",
+      "sha256": "83c97bbdb8293b9ef72e738d69543db52b826db5603d9d04d34a65d960d09d28"
+    },
+    "business-hours.js": {
+      "file": "business-hours.2977c94b1f445bf6.js",
+      "sha256": "2977c94b1f445bf613590345fd35f3fbdbd53e7e48487f493475239e7ddf1612"
+    },
+    "client-safety.js": {
+      "file": "client-safety.ee8ab9f5e87ed482.js",
+      "sha256": "ee8ab9f5e87ed482c9d856a6035fd01085e67b8d8d61598ea1169cbb027043dd"
+    },
+    "auth-session.js": {
+      "file": "auth-session.ed9586f2ea68e654.js",
+      "sha256": "ed9586f2ea68e65429bb2ca16985cae61f75307cfe1da4c1e2c3b3ef3efe620f"
+    },
+    "data-sync.js": {
+      "file": "data-sync.ffb271251cac3038.js",
+      "sha256": "ffb271251cac30380ab693dd0002fa0230c9d298ac62d9a6673d737e1f5e4fd3"
+    },
+    "arrival-config.js": {
+      "file": "arrival-config.7d0208aa90d6b5df.js",
+      "sha256": "7d0208aa90d6b5df924cb6d86a45d6dfe7a52748c17f0cdce60f5b37c98928d8"
+    },
+    "counter-auth.js": {
+      "file": "counter-auth.14cc151790154aae.js",
+      "sha256": "14cc151790154aae00be6b235955b4f5d5245c1d2ebd92d2db33ffa6a5ca1ffd"
+    },
+    "arrival-status.js": {
+      "file": "arrival-status.acc3c8a548bf28f8.js",
+      "sha256": "acc3c8a548bf28f8cd4cbbf872a7e76ad6b2e0f1e734c63bbc2499e542ac3641"
+    },
+    "seat-layout.js": {
+      "file": "seat-layout.cb778b7d2ff90e39.js",
+      "sha256": "cb778b7d2ff90e3932089d03c435061a1fba77352793d6dbafe2745435e42057"
+    },
+    "duration-wheel.js": {
+      "file": "duration-wheel.abfc9c7a88aa5d31.js",
+      "sha256": "abfc9c7a88aa5d31452451ddb7fc8816a64162c3c79545f92c7d20bbf5fd8e37"
+    },
+    "version-update.js": {
+      "file": "version-update.e2555ad6fb692eda.js",
+      "sha256": "e2555ad6fb692eda1920ad287b198c73606345421c71aa68c2629003c6efc750"
+    }
+  },
+  "files": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app-icon.svg": "1a14f94d47e24743a0bb1434a6231e5d6c7cbde5d7415fecf408e968e98b9b03",
+    "appointment-details.5ea1c3b6fe460280.js": "5ea1c3b6fe4602805be5aa33dcd7c7c734dcfda5c606321c1e27bf5861ae0708",
+    "appointment-format.2c68a1ea43e51e82.js": "2c68a1ea43e51e82a1a9e7cb505625d4080b87a52c9168fe9844416685668bd1",
+    "arrival-config.7d0208aa90d6b5df.js": "7d0208aa90d6b5df924cb6d86a45d6dfe7a52748c17f0cdce60f5b37c98928d8",
+    "arrival-status.acc3c8a548bf28f8.js": "acc3c8a548bf28f8cd4cbbf872a7e76ad6b2e0f1e734c63bbc2499e542ac3641",
+    "auth-session.ed9586f2ea68e654.js": "ed9586f2ea68e65429bb2ca16985cae61f75307cfe1da4c1e2c3b3ef3efe620f",
+    "booking-date-picker.8c8f9471b2b976c5.js": "8c8f9471b2b976c5768d20327ea0848a7c106e6955db0add55463beb85854398",
+    "business-hours.2977c94b1f445bf6.js": "2977c94b1f445bf613590345fd35f3fbdbd53e7e48487f493475239e7ddf1612",
+    "capacity-prompt.6c8e9108f5fb3365.js": "6c8e9108f5fb336517e72cfd28b8cc555ba2cc261520e86fbe84f6e70ee6f9a0",
+    "card-layout.941278f2e916f0ad.js": "941278f2e916f0add4fe8b6739b9caa98ba47a19e13b7d6006172fc4ddc66238",
+    "catalog.6ac38624ee14a1cd.js": "6ac38624ee14a1cd7ea8f09518ee2019f19ab3c9d1dac720be1d1c17b423af34",
+    "client-safety.ee8ab9f5e87ed482.js": "ee8ab9f5e87ed482c9d856a6035fd01085e67b8d8d61598ea1169cbb027043dd",
+    "compat-version.json": "f3c2fe0dfd43c51fbb8d9fb64cccb85805f7189524fd40175cf616638dc543eb",
+    "counter-auth.14cc151790154aae.js": "14cc151790154aae00be6b235955b4f5d5245c1d2ebd92d2db33ffa6a5ca1ffd",
+    "data-sync.ffb271251cac3038.js": "ffb271251cac30380ab693dd0002fa0230c9d298ac62d9a6673d737e1f5e4fd3",
+    "duration-wheel.abfc9c7a88aa5d31.js": "abfc9c7a88aa5d31452451ddb7fc8816a64162c3c79545f92c7d20bbf5fd8e37",
+    "firebase-config.e68f55e267bbe996.js": "e68f55e267bbe996eb4aafe951ebfda91adb4ab1eb2f98d02a408789863431aa",
+    "gov-calendar.1fdfd09bad32998e.js": "1fdfd09bad32998e0c00d6ddccac14bd9cc02f11863da08bfe593cdc683b9461",
+    "gov-holidays/2026.json": "ffa917c68dfbb3c43f5f4d079238ea989222f328ea7c0a8c6fa2ac518fda7b7b",
+    "index.html": "111c6e427e8621d5890fa865f68f5cd4be6bb315cb3c0ac8cebff35ab898d84f",
+    "main-header.8af77f52120e7110.js": "8af77f52120e7110c55439c5a1e5be109b3a9ef988eec381b33e128d62231e24",
+    "manifest.webmanifest": "243ccf7c3a9a54d9cc91bd741e204b7189e0c5ef7ea8a8cff4539bbd3a67f3d6",
+    "schedule-image.25d73908879e56a1.js": "25d73908879e56a1159ec0b828750682ebb6a1723475754bcddb8b4c2c891500",
+    "schedule.66123383f2bf54e6.js": "66123383f2bf54e6ec6a9e6dbe7aee899b10bbfbaae64853187d05b9cf80fdbb",
+    "seat-layout.cb778b7d2ff90e39.js": "cb778b7d2ff90e3932089d03c435061a1fba77352793d6dbafe2745435e42057",
+    "service-capacity.57630d9471db79d3.js": "57630d9471db79d32ba6d57e2cd71072b60d3d3439fb4605970afe6945e84df8",
+    "settings.83c97bbdb8293b9e.js": "83c97bbdb8293b9ef72e738d69543db52b826db5603d9d04d34a65d960d09d28",
+    "staff-schedule.ab7f37b50df8194a.js": "ab7f37b50df8194af4fa30f23e8472effc594fe83f50f9a1e538b5917472d0bd",
+    "staff.939facc5acf0912c.js": "939facc5acf0912c2dce36242604215b7fc391c2a61ce0caa804ec2b473ee581",
+    "styles.62c923e2403cd40c.css": "62c923e2403cd40c99cac71632c03a8892cdf0afca1959b5ee3c75768f120b1c",
+    "sw.js": "e7f8d2f59918dcdb9f2501ca95594de156abdcf85f2add2d5fc32b39362665a6",
+    "update-recovery.html": "453f386fdaf7d6a5fa4d30ff12c8c5f0f29f4be029ae034fb2a257c54ebe7937",
+    "version-update.e2555ad6fb692eda.js": "e2555ad6fb692eda1920ad287b198c73606345421c71aa68c2629003c6efc750",
+    "version.json": "21b40dd6a96a931f8dc96e630e7eba62920b1fc51e4bfa4c9d640a9213a33bc5"
+  }
+}
